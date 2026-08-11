@@ -14,6 +14,12 @@
   .card.done .value { color:#1c8a4b; }
   .card.pending .value { color:#c0392b; }
   #month { margin-bottom:16px; padding:6px 10px; font-size:14px; }
+  form.add { background:#fff; border-radius:12px; padding:20px 24px; box-shadow:0 1px 3px rgba(0,0,0,.08); margin-top:24px; max-width:420px; display:flex; flex-direction:column; gap:10px; }
+  form.add h2 { font-size:15px; margin:0 0 6px; }
+  form.add input { padding:8px 10px; font-size:14px; border:1px solid #ddd; border-radius:6px; }
+  form.add button { padding:10px; font-size:14px; border:none; border-radius:6px; background:#1a1a1a; color:#fff; cursor:pointer; }
+  form.add button:hover { background:#333; }
+  #addMsg { font-size:13px; color:#1c8a4b; min-height:16px; }
 </style>
 </head>
 <body>
@@ -34,9 +40,18 @@
     </div>
   </div>
 
+  <form class="add" id="addForm">
+    <h2>הוספת הוצאה ידנית</h2>
+    <input type="date" id="f_date" required>
+    <input type="number" id="f_amount" placeholder="סכום (₪)" step="0.01" required>
+    <input type="text" id="f_desc" placeholder="תיאור (לדוגמה: חשמל אוגוסט)">
+    <button type="submit">הוסף הוצאה</button>
+    <div id="addMsg"></div>
+  </form>
+
   <script>
     // TODO: לעדכן לכתובת ה-Worker בפועל אחרי הפריסה
-    const API_BASE = "https://smartexpense.YOUR_SUBDOMAIN.workers.dev";
+    const API_BASE = "https://smartexpense.meny85502.workers.dev";
 
     const monthInput = document.getElementById("month");
     monthInput.value = new Date().toISOString().slice(0,7);
@@ -52,6 +67,32 @@
 
     monthInput.addEventListener("change", loadDashboard);
     loadDashboard();
+
+    document.getElementById("addForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const msg = document.getElementById("addMsg");
+      msg.style.color = "#1c8a4b";
+      msg.textContent = "שולח...";
+      try {
+        const res = await fetch(`${API_BASE}/api/expenses`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            expense_date: document.getElementById("f_date").value,
+            amount: parseFloat(document.getElementById("f_amount").value),
+            description: document.getElementById("f_desc").value,
+          }),
+        });
+        if (!res.ok) throw new Error("שגיאה בשרת");
+        msg.textContent = "נוסף בהצלחה!";
+        document.getElementById("f_amount").value = "";
+        document.getElementById("f_desc").value = "";
+        loadDashboard();
+      } catch (err) {
+        msg.style.color = "#c0392b";
+        msg.textContent = "שגיאה: " + err.message;
+      }
+    });
   </script>
 </body>
 </html>
