@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>מערכת ניהול קבלות למוסד</title>
+<style>
+  body { font-family: system-ui, sans-serif; background:#f5f6f8; margin:0; padding:24px; }
+  h1 { font-size:20px; margin-bottom:24px; }
+  .cards { display:flex; gap:16px; flex-wrap:wrap; }
+  .card { background:#fff; border-radius:12px; padding:20px 24px; box-shadow:0 1px 3px rgba(0,0,0,.08); min-width:200px; }
+  .card .label { color:#666; font-size:13px; margin-bottom:8px; }
+  .card .value { font-size:28px; font-weight:700; }
+  .card.total .value { color:#1a1a1a; }
+  .card.done .value { color:#1c8a4b; }
+  .card.pending .value { color:#c0392b; }
+  #month { margin-bottom:16px; padding:6px 10px; font-size:14px; }
+</style>
+</head>
+<body>
+  <h1>מערכת ניהול קבלות למוסד</h1>
+  <input type="month" id="month">
+  <div class="cards">
+    <div class="card total">
+      <div class="label">סך הוצאות החודש</div>
+      <div class="value" id="total">-</div>
+    </div>
+    <div class="card done">
+      <div class="label">הוצאות עם קבלה</div>
+      <div class="value" id="withReceipt">-</div>
+    </div>
+    <div class="card pending">
+      <div class="label">הוצאות בלי קבלה</div>
+      <div class="value" id="withoutReceipt">-</div>
+    </div>
+  </div>
+
+  <script>
+    // TODO: לעדכן לכתובת ה-Worker בפועל אחרי הפריסה
+    const API_BASE = "https://smartexpense.YOUR_SUBDOMAIN.workers.dev";
+
+    const monthInput = document.getElementById("month");
+    monthInput.value = new Date().toISOString().slice(0,7);
+
+    async function loadDashboard() {
+      const month = monthInput.value;
+      const res = await fetch(`${API_BASE}/api/dashboard?month=${month}`);
+      const data = await res.json();
+      document.getElementById("total").textContent = "₪" + data.total.total.toLocaleString();
+      document.getElementById("withReceipt").textContent = "₪" + data.with_receipt.total.toLocaleString();
+      document.getElementById("withoutReceipt").textContent = "₪" + data.without_receipt.total.toLocaleString();
+    }
+
+    monthInput.addEventListener("change", loadDashboard);
+    loadDashboard();
+  </script>
+</body>
+</html>

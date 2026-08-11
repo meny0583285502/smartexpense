@@ -1,0 +1,16 @@
+name = "smartexpense"
+main = "src/index.js"
+compatibility_date = "2026-01-01"
+
+# אחרי יצירת ה-D1 database עם:
+#   npx wrangler d1 create smartexpense-db
+# תעדכן כאן את ה-database_id שתקבל בפלט
+[[d1_databases]]
+binding = "DB"
+database_name = "smartexpense-db"
+database_id = "PLACEHOLDER_UPDATE_ME"
+
+# בהמשך, כשנחבר Drive/Gmail, המפתחות יוכנסו כ-secrets ולא כאן:
+#   npx wrangler secret put GOOGLE_CLIENT_ID
+#   npx wrangler secret put GOOGLE_CLIENT_SECRET
+#   npx wrangler secret put GOOGLE_REFRESH_TOKEN
