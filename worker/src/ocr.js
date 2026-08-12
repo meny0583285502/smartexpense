@@ -23,6 +23,10 @@ export async function runOCR(env, bytes) {
     }),
   });
   const data = await res.json();
+  const apiError = data?.responses?.[0]?.error;
+  if (!res.ok || apiError) {
+    throw new Error("Vision API error: " + JSON.stringify(apiError || data));
+  }
   const text = data?.responses?.[0]?.fullTextAnnotation?.text || "";
   return { rawText: text, extracted: extractFields(text) };
 }

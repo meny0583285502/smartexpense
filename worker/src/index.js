@@ -47,6 +47,10 @@ async function findOrCreateSupplier(env, name, extra = {}) {
 }
 
 export default {
+  async scheduled(event, env, ctx) {
+    await syncUnverifiedFolder(env);
+  },
+
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const path = url.pathname;

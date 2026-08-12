@@ -13,6 +13,9 @@ database_id = "0784898e-6460-40b8-90d6-d38ceff6f459"
 [vars]
 ROOT_FOLDER_ID = "1rfWzSoA7ZaOxA7137UGGURLKgzZwLxCC"
 
+[triggers]
+crons = ["*/15 * * * *"]
+
 # כשיהיה מפתח Google Service Account, תריץ:
 #   npx wrangler secret put GOOGLE_SA_EMAIL
 #   npx wrangler secret put GOOGLE_SA_KEY
