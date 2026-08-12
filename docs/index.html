@@ -5,54 +5,116 @@
 <title>קבלות חכמות</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%A7%BE%3C/text%3E%3C/svg%3E">
 <style>
-  body { font-family: system-ui, sans-serif; background:linear-gradient(160deg,#f0f4ff,#f9f5ff); margin:0; padding:24px; color:#1a1a2e; min-height:100vh; }
-  h1 { font-size:22px; margin-bottom:6px; color:#3730a3; }
-  h2 { font-size:15px; margin:0 0 10px; }
-  #loginScreen { max-width:460px; margin:60px auto; text-align:center; }
-  #loginScreen h1 { font-size:30px; }
-  .tagline { color:#666; font-size:14px; margin-bottom:28px; }
-  .institution-name { color:#6d28d9; font-weight:600; }
-  .cards { display:flex; gap:14px; flex-wrap:wrap; margin-bottom:24px; }
-  .card { background:#fff; border-radius:14px; padding:18px 22px; box-shadow:0 2px 10px rgba(99,102,241,.1); min-width:170px; cursor:pointer; border-top:4px solid #a5b4fc; transition:transform .15s; }
-  .card:hover { transform:translateY(-2px); }
-  .card .label { color:#666; font-size:12px; margin-bottom:6px; }
-  .card .value { font-size:24px; font-weight:700; }
-  .card.pending { border-top-color:#f87171; }
-  .card.pending .value { color:#dc2626; }
-  .card.done { border-top-color:#34d399; }
-  .card.done .value { color:#059669; }
-  .card.warn { border-top-color:#fbbf24; }
-  .card.warn .value { color:#d97706; }
-  .tabs { display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; }
-  .tabs button { padding:8px 14px; border:1px solid #ddd; background:#fff; border-radius:8px; cursor:pointer; font-size:13px; }
-  .tabs button.active { background:#4f46e5; color:#fff; border-color:#4f46e5; }
-  .subtabs { display:flex; gap:6px; margin-bottom:16px; }
-  .subtabs button { padding:6px 12px; border:1px solid #ccc; background:#f0f0f0; border-radius:6px; cursor:pointer; font-size:12px; }
-  .subtabs button.active { background:#4f46e5; color:#fff; border-color:#4f46e5; }
-  .panel { background:#fff; border-radius:14px; padding:20px; box-shadow:0 2px 10px rgba(99,102,241,.08); max-width:820px; }
-  .panel.hidden { display:none; }
-  form { display:flex; flex-direction:column; gap:8px; max-width:420px; }
-  input, select { padding:8px 10px; font-size:14px; border:1px solid #ddd; border-radius:6px; }
-  button.action { padding:10px; font-size:14px; border:none; border-radius:8px; background:#4f46e5; color:#fff; cursor:pointer; margin-top:4px; transition:all .15s; }
-  button.action:hover { background:#4338ca; transform:translateY(-1px); box-shadow:0 4px 12px rgba(79,70,229,.3); }
-  #sidebar { transition:transform .2s; }
-  #hamburgerBtn:hover { transform:scale(1.08); }
-  button.secondary { background:#6b7280; }
-  table { width:100%; border-collapse:collapse; font-size:13px; margin-top:10px; }
-  th, td { text-align:right; padding:6px 8px; border-bottom:1px solid #eee; }
-  th { color:#666; font-weight:600; }
-  .msg { font-size:13px; min-height:16px; margin-top:6px; }
-  .msg.ok { color:#059669; }
-  .msg.err { color:#dc2626; }
-  a.file-link { color:#4f46e5; text-decoration:none; }
-  .pick-row { display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid #eee; font-size:13px; }
-  .pick-row button { padding:4px 10px; font-size:12px; }
+  :root {
+    --primary: #4f46e5;
+    --primary-hover: #4338ca;
+    --bg-gradient: linear-gradient(135deg, #f8fafc 0%, #e0e7ff 100%);
+    --card-bg: rgba(255, 255, 255, 0.9);
+    --shadow: 0 10px 25px -5px rgba(0,0,0,0.05), 0 8px 10px -6px rgba(0,0,0,0.05);
+    --danger: #ef4444;
+    --warning: #f59e0b;
+    --success: #10b981;
+  }
+
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg-gradient);
+    margin: 0; padding: 28px; color: #1e293b; min-height: 100vh;
+  }
+
+  h1 { font-size: 26px; font-weight: 800; color: #312e81; margin-bottom: 8px; }
+  h2 { font-size: 16px; margin: 0 0 12px; color: #334155; }
+  .tagline { color: #64748b; font-size: 14px; margin-bottom: 28px; }
+  .institution-name { color: #6d28d9; font-weight: 700; }
+
+  #loginScreen { max-width: 460px; margin: 60px auto; text-align: center; }
+
+  /* Notification Badge & Header */
+  .badge-container { position: relative; display: inline-block; }
+  .badge {
+    position: absolute; top: -6px; right: -8px;
+    background: var(--danger); color: white; border-radius: 999px;
+    padding: 2px 8px; font-size: 11px; font-weight: 700;
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.15); }
+    100% { transform: scale(1); }
+  }
+
+  /* Cards Grid */
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+  .card {
+    background: var(--card-bg); backdrop-filter: blur(12px);
+    border-radius: 16px; padding: 20px; box-shadow: var(--shadow);
+    border: 1px solid rgba(255,255,255,0.6); border-top: 4px solid var(--primary);
+    transition: all 0.25s ease; cursor: pointer; position: relative; overflow: hidden;
+  }
+  .card:hover { transform: translateY(-4px); box-shadow: 0 15px 30px -5px rgba(79,70,229,0.15); }
+  .card .label { color: #64748b; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+  .card .value { font-size: 26px; font-weight: 800; color: #0f172a; }
+  
+  .card.pending { border-top-color: var(--danger); }
+  .card.pending .value { color: var(--danger); }
+  .card.done { border-top-color: var(--success); }
+  .card.done .value { color: var(--success); }
+  .card.warn { border-top-color: var(--warning); }
+  .card.warn .value { color: var(--warning); }
+
+  /* Modern Navigation Tabs */
+  .tabs { display: flex; gap: 10px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 4px; }
+  .tabs button {
+    padding: 10px 18px; border: none; background: rgba(255,255,255,0.7);
+    border-radius: 12px; cursor: pointer; font-size: 14px; font-weight: 600;
+    color: #475569; transition: all 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+  }
+  .tabs button.active, .tabs button:hover { background: var(--primary); color: white; transform: translateY(-1px); }
+
+  .subtabs { display: flex; gap: 6px; margin-bottom: 16px; }
+  .subtabs button { padding: 6px 14px; border: 1px solid #cbd5e1; background: #f8fafc; border-radius: 8px; cursor: pointer; font-size: 13px; }
+  .subtabs button.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+  /* Panels & Tables */
+  .panel {
+    background: var(--card-bg); backdrop-filter: blur(12px);
+    border-radius: 20px; padding: 24px; box-shadow: var(--shadow);
+    border: 1px solid rgba(255,255,255,0.8); max-width: 860px;
+  }
+  .panel.hidden { display: none; }
+
+  form { display: flex; flex-direction: column; gap: 10px; max-width: 420px; }
+  input, select { padding: 10px 12px; font-size: 14px; border: 1px solid #cbd5e1; border-radius: 8px; background: #fff; }
+  button.action { padding: 10px; font-size: 14px; border: none; border-radius: 8px; background: var(--primary); color: #fff; cursor: pointer; font-weight: 600; transition: all 0.15s; }
+  button.action:hover { background: var(--primary-hover); transform: translateY(-1px); }
+  button.secondary { background: #64748b; }
+  button.secondary:hover { background: #475569; }
+
+  table { width: 100%; border-collapse: separate; border-spacing: 0 6px; margin-top: 12px; }
+  th { text-align: right; padding: 12px; color: #64748b; font-weight: 700; font-size: 13px; }
+  td { padding: 12px; background: white; border-top: 1px solid #f1f5f9; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
+  td:first-child { border-top-right-radius: 10px; border-bottom-right-radius: 10px; }
+  td:last-child { border-top-left-radius: 10px; border-bottom-left-radius: 10px; }
+
+  .highlight-row { animation: highlight 2s ease-out; }
+  @keyframes highlight {
+    0% { background-color: #fef3c7; }
+    100% { background-color: white; }
+  }
+
+  .msg { font-size: 13px; min-height: 16px; margin-top: 6px; }
+  .msg.ok { color: var(--success); font-weight: 600; }
+  .msg.err { color: var(--danger); font-weight: 600; }
+  a.file-link { color: var(--primary); text-decoration: none; font-weight: 600; }
 </style>
 </head>
 <body>
+
   <div id="loginScreen">
     <h1>🧾 קבלות חכמות</h1>
-    <p class="tagline">סורק, רושם, מחשב, ומדפיס הוצאות</p>
+    <p class="tagline">סורק, רושם, מחשב ומדפיס הוצאות</p>
     <div class="panel">
       <h2>בחר משתמש</h2>
       <div id="userList"></div>
@@ -76,214 +138,225 @@
     </div>
   </div>
 
-  <button id="hamburgerBtn" onclick="toggleSidebar()" style="position:fixed;top:18px;left:18px;z-index:150;background:#4f46e5;color:#fff;border:none;border-radius:10px;width:44px;height:44px;font-size:20px;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.15);">☰</button>
+  <button id="hamburgerBtn" onclick="toggleSidebar()" style="position:fixed;top:18px;left:18px;z-index:150;background:var(--primary);color:#fff;border:none;border-radius:10px;width:44px;height:44px;font-size:20px;cursor:pointer;box-shadow:var(--shadow);">☰</button>
 
   <div id="sidebarOverlay" onclick="toggleSidebar()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:160;"></div>
   <div id="sidebar" style="display:none;position:fixed;top:0;right:0;width:280px;height:100%;background:#fff;z-index:170;box-shadow:-4px 0 20px rgba(0,0,0,.15);padding:24px;box-sizing:border-box;">
-    <h2 style="color:#4f46e5;">🧾 קבלות חכמות</h2>
+    <h2 style="color:var(--primary);">🧾 קבלות חכמות</h2>
     <p style="color:#666;font-size:13px;">מחובר בתור: <b id="sidebarUsername"></b></p>
     <hr style="margin:16px 0;border:none;border-top:1px solid #eee;">
     <button class="action" style="width:100%;text-align:right;" onclick="showTab('settings'); toggleSidebar();">⚙ הגדרות משתמש</button>
     <button class="action secondary" style="width:100%;text-align:right;margin-top:8px;" onclick="switchUser()">🔄 החלף משתמש</button>
-    <button class="action secondary" style="width:100%;text-align:right;margin-top:8px;background:#c0392b;" onclick="logout()">🚪 התנתק</button>
+    <button class="action secondary" style="width:100%;text-align:right;margin-top:8px;background:var(--danger);" onclick="logout()">🚪 התנתק</button>
     <hr style="margin:16px 0;border:none;border-top:1px solid #eee;">
     <button class="action secondary" style="width:100%;text-align:right;" onclick="manualSync(); toggleSidebar();">🔁 סנכרן דרייב עכשיו</button>
   </div>
 
-  <div id="editModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;">
-    <div class="panel" style="max-width:420px;margin:60px auto;">
-      <h2>עריכת הוצאה</h2>
-      <form id="editForm">
-        <input type="date" id="ed_date" placeholder="תאריך">
-        <input type="number" step="0.01" id="ed_amount" placeholder="סכום">
-        <input type="text" id="ed_supplier" placeholder="שם ספק">
-        <input type="text" id="ed_taxid" placeholder="ח.פ">
-        <input type="text" id="ed_category" placeholder="סעיף תקציבי">
-        <input type="text" id="ed_bank" placeholder="חשבון בנק">
-        <input type="text" id="ed_notes" placeholder="הערות">
-        <select id="ed_status">
-          <option value="unverified">לא אומת</option>
-          <option value="no_receipt">ללא קבלה</option>
-          <option value="unpaid">לא יצא להחזר</option>
-          <option value="paid">יצא להחזר</option>
-        </select>
-        <button class="action" type="submit">שמור שינויים</button>
-        <button class="action secondary" type="button" onclick="closeEditModal()">ביטול</button>
-        <div class="msg" id="edit_msg"></div>
-      </form>
-    </div>
-  </div>
-
   <div id="app" style="display:none;">
-  <h1>🧾 קבלות חכמות <span class="institution-name" id="institutionName"></span></h1>
-  <input type="month" id="month">
+    <h1>🧾 קבלות חכמות <span class="institution-name" id="institutionName"></span></h1>
+    <input type="month" id="month" style="margin-bottom: 16px;">
 
-  <div class="cards">
-    <div class="card" onclick="showTab('expenses')">
-      <div class="label">סך הוצאות החודש</div>
-      <div class="value" id="c_month_total">-</div>
-    </div>
-    <div class="card warn" onclick="showTab('unverified')">
-      <div class="label">קבלות שלא אומתו</div>
-      <div class="value" id="c_unverified">-</div>
-    </div>
-    <div class="card pending" onclick="showTab('unpaid')">
-      <div class="label">הוצאות שלא יצאו להחזר</div>
-      <div class="value" id="c_unpaid">-</div>
-    </div>
-    <div class="card done" onclick="showTab('paid')">
-      <div class="label">יצאו להחזר החודש</div>
-      <div class="value" id="c_paid">-</div>
-    </div>
-  </div>
-
-  <div class="tabs">
-    <button data-tab="upload" onclick="showTab('upload')">הזנת הוצאה</button>
-    <button data-tab="expenses" onclick="showTab('expenses')">הוצאות החודש</button>
-    <button data-tab="unpaid" onclick="showTab('unpaid')">לא יצאו להחזר</button>
-    <button data-tab="paid" onclick="showTab('paid')">יצאו להחזר</button>
-    <button data-tab="unverified" onclick="showTab('unverified')">לא אומתו</button>
-    <button data-tab="suppliers" onclick="showTab('suppliers')">ספקים</button>
-    <button data-tab="settings" onclick="showTab('settings')">⚙ הגדרות</button>
-  </div>
-
-  <div id="panel-settings" class="panel hidden">
-    <h2>הגדרות משתמש</h2>
-    <form id="settingsForm">
-      <label>כתובת מייל לקבלת התראה בכל ייצוא לדוקס:</label>
-      <input type="email" id="set_email" placeholder="example@gmail.com">
-      <button class="action" type="submit">שמור</button>
-      <div class="msg" id="settings_msg"></div>
-    </form>
-  </div>
-
-  <!-- ===== פאנל הזנת הוצאה - 3 מצבים ===== -->
-  <div id="panel-upload" class="panel">
-    <div class="subtabs">
-      <button data-mode="a" onclick="showMode('a')">הוצאה חדשה ללא קבלה</button>
-      <button data-mode="b" onclick="showMode('b')">העלה קבלה להוצאה קיימת</button>
-      <button data-mode="c" onclick="showMode('c')">הוצאה חדשה עם קבלה</button>
-    </div>
-
-    <!-- מצב א: הוצאה ללא קבלה -->
-    <div id="mode-a" class="mode-panel">
-      <h2>הוצאה חדשה ללא קבלה</h2>
-      <form id="formA">
-        <input type="date" id="a_date">
-        <input type="number" id="a_amount" placeholder="סכום (₪) - חובה" step="0.01" required>
-        <input type="text" id="a_supplier" placeholder="שם ספק - חובה" required>
-        <input type="text" id="a_category" placeholder="סעיף תקציבי">
-        <input type="text" id="a_bank" placeholder="חשבון בנק">
-        <input type="text" id="a_phone" placeholder="טלפון ספק">
-        <input type="text" id="a_email" placeholder="מייל ספק">
-        <input type="text" id="a_notes" placeholder="הערות">
-        <button class="action" type="submit">אשר הוצאה</button>
-        <div class="msg" id="a_msg"></div>
-      </form>
-    </div>
-
-    <!-- מצב ב: העלה קבלה להוצאה קיימת -->
-    <div id="mode-b" class="mode-panel" style="display:none">
-      <h2>העלה קבלה להוצאה קיימת</h2>
-      <form id="searchB" onsubmit="return false;">
-        <input type="number" id="b_amount" placeholder="סכום לחיפוש" step="0.01">
-        <input type="text" id="b_supplier" placeholder="שם ספק לחיפוש">
-        <button class="action secondary" type="button" onclick="searchExisting()">חפש</button>
-      </form>
-      <div id="b_results"></div>
-      <div id="b_attach" style="display:none;margin-top:14px;">
-        <p>קובץ עבור הוצאה #<span id="b_selected_id"></span>:</p>
-        <input type="file" id="b_file" accept="image/*,application/pdf" capture="environment" onchange="previewFile('b_file','b_preview')">
-        <div id="b_preview" style="margin:6px 0;"></div>
-        <button class="action" type="button" onclick="attachFile()">העלה וצרף</button>
-        <div class="msg" id="b_msg"></div>
+    <div class="cards">
+      <div class="card" onclick="showTab('expenses')">
+        <div class="label">סך הוצאות החודש</div>
+        <div class="value" id="c_month_total">-</div>
+      </div>
+      <div class="card warn" onclick="showTab('unverified'); highlightUnverifiedRows();">
+        <div class="label">קבלות שלא אומתו</div>
+        <div class="value" id="c_unverified">-</div>
+      </div>
+      <div class="card pending" onclick="showTab('unpaid')">
+        <div class="label">הוצאות שלא יצאו להחזר</div>
+        <div class="value" id="c_unpaid">-</div>
+      </div>
+      <div class="card done" onclick="showTab('paid')">
+        <div class="label">יצאו להחזר החודש</div>
+        <div class="value" id="c_paid">-</div>
       </div>
     </div>
 
-    <!-- מצב ג: הוצאה חדשה עם קבלה -->
-    <div id="mode-c" class="mode-panel" style="display:none">
-      <h2>הוצאה חדשה עם קבלה</h2>
-      <form id="formC">
-        <input type="file" id="c_file" accept="image/*,application/pdf" capture="environment" required onchange="previewFile('c_file','c_preview')">
-        <div id="c_preview" style="margin:6px 0;"></div>
-        <button class="action secondary" type="button" onclick="runSmartScan()">הרץ סריקה חכמה</button>
-        <input type="date" id="c_date">
-        <input type="number" id="c_amount" placeholder="סכום (₪) - חובה" step="0.01" required>
-        <input type="text" id="c_supplier" placeholder="שם ספק - חובה" required>
-        <input type="text" id="c_taxid" placeholder="ח.פ">
-        <input type="text" id="c_category" placeholder="סעיף תקציבי">
-        <input type="text" id="c_bank" placeholder="חשבון בנק">
-        <input type="text" id="c_phone" placeholder="טלפון ספק">
-        <input type="text" id="c_email" placeholder="מייל ספק">
-        <input type="text" id="c_notes" placeholder="הערות">
-        <div style="display:flex;gap:8px;">
-          <button class="action" type="submit">שמור</button>
-          <button class="action secondary" type="button" onclick="document.getElementById('formC').reset()">בטל הוצאה</button>
-        </div>
-        <div class="msg" id="c_msg"></div>
+    <div class="tabs">
+      <button data-tab="upload" onclick="showTab('upload')">הזנת הוצאה</button>
+      <button data-tab="expenses" onclick="showTab('expenses')">הוצאות החודש</button>
+      <button data-tab="unpaid" onclick="showTab('unpaid')">לא יצאו להחזר</button>
+      <button data-tab="paid" onclick="showTab('paid')">יצאו להחזר</button>
+      <button data-tab="unverified" onclick="showTab('unverified'); highlightUnverifiedRows();">
+        לא אומתו
+      </button>
+      <button data-tab="suppliers" onclick="showTab('suppliers')">ספקים</button>
+      <button data-tab="settings" onclick="showTab('settings')">⚙ הגדרות</button>
+    </div>
+
+    <div id="panel-settings" class="panel hidden">
+      <h2>הגדרות משתמש</h2>
+      <form id="settingsForm">
+        <label>כתובת מייל לקבלת התראה בכל ייצוא לדוקס:</label>
+        <input type="email" id="set_email" placeholder="example@gmail.com">
+        <button class="action" type="submit">שמור</button>
+        <div class="msg" id="settings_msg"></div>
       </form>
     </div>
-  </div>
 
-  <div id="panel-expenses" class="panel hidden">
-    <h2>כל ההוצאות של החודש</h2>
-    <table id="t_expenses"><thead><tr><th>תאריך</th><th>ספק</th><th>סכום</th><th>סטטוס</th><th>קובץ</th><th>פעולות</th></tr></thead><tbody></tbody></table>
-  </div>
+    <div id="panel-upload" class="panel">
+      <div class="subtabs">
+        <button data-mode="a" onclick="showMode('a')">הוצאה חדשה ללא קבלה</button>
+        <button data-mode="b" onclick="showMode('b')">העלה קבלה להוצאה קיימת</button>
+        <button data-mode="c" onclick="showMode('c')">הוצאה חדשה עם קבלה</button>
+      </div>
 
-  <div id="panel-unpaid" class="panel hidden">
-    <h2>הוצאות שלא יצאו להחזר (כולל חודשים קודמים, כולל בלי קבלה)</h2>
-    <div style="display:flex;gap:8px;">
-      <button class="action" id="exportXlsxBtn">ייצא ל-Excel</button>
-      <button class="action" id="exportDocBtn">ייצא לדוקס (בקשות ארחות יושר)</button>
+      <div id="mode-a" class="mode-panel">
+        <h2>הוצאה חדשה ללא קבלה</h2>
+        <form id="formA">
+          <input type="date" id="a_date">
+          <input type="number" id="a_amount" placeholder="סכום (₪) - חובה" step="0.01" required>
+          <input type="text" id="a_supplier" placeholder="שם ספק - חובה" required>
+          <input type="text" id="a_category" placeholder="סעיף תקציבי">
+          <input type="text" id="a_bank" placeholder="חשבון בנק">
+          <input type="text" id="a_phone" placeholder="טלפון ספק">
+          <input type="text" id="a_email" placeholder="מייל ספק">
+          <input type="text" id="a_notes" placeholder="הערות">
+          <button class="action" type="submit">אשר הוצאה</button>
+          <div class="msg" id="a_msg"></div>
+        </form>
+      </div>
+
+      <div id="mode-b" class="mode-panel" style="display:none">
+        <h2>העלה קבלה להוצאה קיימת</h2>
+        <form id="searchB" onsubmit="return false;">
+          <input type="number" id="b_amount" placeholder="סכום לחיפוש" step="0.01">
+          <input type="text" id="b_supplier" placeholder="שם ספק לחיפוש">
+          <button class="action secondary" type="button" onclick="searchExisting()">חפש</button>
+        </form>
+        <div id="b_results"></div>
+        <div id="b_attach" style="display:none;margin-top:14px;">
+          <p>קובץ עבור הוצאה #<span id="b_selected_id"></span>:</p>
+          <input type="file" id="b_file" accept="image/*,application/pdf" capture="environment" onchange="previewFile('b_file','b_preview')">
+          <div id="b_preview" style="margin:6px 0;"></div>
+          <button class="action" type="button" onclick="attachFile()">העלה וצרף</button>
+          <div class="msg" id="b_msg"></div>
+        </div>
+      </div>
+
+      <div id="mode-c" class="mode-panel" style="display:none">
+        <h2>הוצאה חדשה עם קבלה</h2>
+        <form id="formC">
+          <input type="file" id="c_file" accept="image/*,application/pdf" capture="environment" required onchange="previewFile('c_file','c_preview')">
+          <div id="c_preview" style="margin:6px 0;"></div>
+          <button class="action secondary" type="button" onclick="runSmartScan()">הרץ סריקה חכמה</button>
+          <input type="date" id="c_date">
+          <input type="number" id="c_amount" placeholder="סכום (₪) - חובה" step="0.01" required>
+          <input type="text" id="c_supplier" placeholder="שם ספק - חובה" required>
+          <input type="text" id="c_taxid" placeholder="ח.פ">
+          <input type="text" id="c_category" placeholder="סעיף תקציבי">
+          <input type="text" id="c_bank" placeholder="חשבון בנק">
+          <input type="text" id="c_phone" placeholder="טלפון ספק">
+          <input type="text" id="c_email" placeholder="מייל ספק">
+          <input type="text" id="c_notes" placeholder="הערות">
+          <div style="display:flex;gap:8px;">
+            <button class="action" type="submit">שמור</button>
+            <button class="action secondary" type="button" onclick="document.getElementById('formC').reset()">בטל הוצאה</button>
+          </div>
+          <div class="msg" id="c_msg"></div>
+        </form>
+      </div>
     </div>
-    <div class="msg" id="export_msg"></div>
-    <table id="t_unpaid"><thead><tr><th>תאריך</th><th>ספק</th><th>סכום</th><th>ח.פ</th><th>קובץ</th><th>פעולות</th></tr></thead><tbody></tbody></table>
-  </div>
 
-  <div id="panel-paid" class="panel hidden">
-    <h2>קבלות שיצאו להחזר החודש</h2>
-    <table id="t_paid"><thead><tr><th>תאריך</th><th>ספק</th><th>סכום</th><th>קובץ</th><th>פעולות</th></tr></thead><tbody></tbody></table>
-  </div>
+    <div id="panel-expenses" class="panel hidden">
+      <h2>כל ההוצאות של החודש</h2>
+      <table id="t_expenses"><thead><tr><th>תאריך</th><th>ספק</th><th>סכום</th><th>סטטוס</th><th>קובץ</th><th>פעולות</th></tr></thead><tbody></tbody></table>
+    </div>
 
-  <div id="panel-unverified" class="panel hidden">
-    <h2>קבלות שממתינות לאימות</h2>
-    <button class="action secondary" id="syncDriveBtn">סנכרן קבצים שהוכנסו ידנית לדרייב</button>
-    <div class="msg" id="sync_msg"></div>
-    <table id="t_unverified"><thead><tr><th>קובץ</th><th>תאריך</th><th>ספק</th><th>סכום</th><th>ח.פ</th><th></th><th></th></tr></thead><tbody></tbody></table>
-  </div>
+    <div id="panel-unpaid" class="panel hidden">
+      <h2>הוצאות שלא יצאו להחזר</h2>
+      <div style="display:flex;gap:8px;">
+        <button class="action" id="exportXlsxBtn">ייצא ל-Excel</button>
+        <button class="action" id="exportDocBtn">ייצא לדוקס (בקשת תשלומים)</button>
+      </div>
+      <div class="msg" id="export_msg"></div>
+      <table id="t_unpaid"><thead><tr><th>תאריך</th><th>ספק</th><th>סכום</th><th>ח.פ</th><th>קובץ</th><th>פעולות</th></tr></thead><tbody></tbody></table>
+    </div>
 
-  <div id="panel-suppliers" class="panel hidden">
-    <h2>ניהול ספקים</h2>
-    <form id="supplierForm">
-      <input type="text" id="s_name" placeholder="שם ספק" required>
-      <input type="text" id="s_taxid" placeholder="ח.פ">
-      <input type="text" id="s_phone" placeholder="טלפון">
-      <input type="text" id="s_account" placeholder="חשבון בנק">
-      <button class="action" type="submit">שמור ספק</button>
-      <div class="msg" id="s_msg"></div>
-    </form>
-    <table id="t_suppliers"><thead><tr><th>שם</th><th>ח.פ</th><th>טלפון</th><th>סה"כ הוצאות</th><th>סה"כ שולם</th></tr></thead><tbody></tbody></table>
-  </div>
+    <div id="panel-paid" class="panel hidden">
+      <h2>קבלות שיצאו להחזר החודש</h2>
+      <table id="t_paid"><thead><tr><th>תאריך</th><th>ספק</th><th>סכום</th><th>קובץ</th><th>פעולות</th></tr></thead><tbody></tbody></table>
+    </div>
 
-  <div id="previewModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;">
-    <div style="background:#fff;max-width:600px;margin:40px auto;border-radius:12px;padding:16px;position:relative;">
-      <button onclick="closePreview()" style="position:absolute;top:10px;left:10px;background:#c0392b;color:#fff;border:none;border-radius:6px;padding:6px 12px;cursor:pointer;">סגור</button>
-      <iframe id="previewFrame" src="" style="width:100%;height:70vh;border:none;margin-top:30px;"></iframe>
+    <div id="panel-unverified" class="panel hidden">
+      <h2>קבלות שממתינות לאימות</h2>
+      <button class="action secondary" id="syncDriveBtn">סנכרן קבצים שהוכנסו ידנית לדרייב</button>
+      <div class="msg" id="sync_msg"></div>
+      <table id="t_unverified"><thead><tr><th>קובץ</th><th>תאריך</th><th>ספק</th><th>סכום</th><th>ח.פ</th><th></th><th></th></tr></thead><tbody></tbody></table>
+    </div>
+
+    <div id="panel-suppliers" class="panel hidden">
+      <h2>ניהול ספקים</h2>
+      <form id="supplierForm">
+        <input type="text" id="s_name" placeholder="שם ספק" required>
+        <input type="text" id="s_taxid" placeholder="ח.פ">
+        <input type="text" id="s_phone" placeholder="טלפון">
+        <input type="text" id="s_account" placeholder="חשבון בנק">
+        <button class="action" type="submit">שמור ספק</button>
+        <div class="msg" id="s_msg"></div>
+      </form>
+      <table id="t_suppliers"><thead><tr><th>שם</th><th>ח.פ</th><th>טלפון</th><th>סה"כ הוצאות</th><th>סה"כ שולם</th></tr></thead><tbody></tbody></table>
     </div>
   </div>
 
   <script>
-    function openPreview(fileId) {
-      document.getElementById("previewFrame").src = `https://drive.google.com/file/d/${fileId}/preview`;
-      document.getElementById("previewModal").style.display = "block";
-    }
-    function closePreview() {
-      document.getElementById("previewModal").style.display = "none";
-      document.getElementById("previewFrame").src = "";
-    }
     const API_BASE = "https://smartexpense.meny85502.workers.dev";
     let currentUser = null;
-    let pendingUsername = null;
+    let autoSyncInterval = null;
+
+    function startAutoSync() {
+      if (autoSyncInterval) clearInterval(autoSyncInterval);
+      checkUnverifiedReceipts();
+      autoSyncInterval = setInterval(checkUnverifiedReceipts, 30000);
+    }
+
+    async function checkUnverifiedReceipts() {
+      if (!currentUser) return;
+      await fetch(`${API_BASE}/api/sync-drive`, { method: "POST" });
+      const res = await fetch(`${API_BASE}/api/dashboard?month=${monthInput.value}&user_id=${currentUser.id}`);
+      const data = await res.json();
+      updateNotificationBadge(data.unverified_count || 0);
+    }
+
+    function updateNotificationBadge(count) {
+      let badgeEl = document.getElementById("unverifiedBadge") || createBadgeElement();
+      const cardVal = document.getElementById("c_unverified");
+      if (cardVal) cardVal.textContent = count;
+
+      if (badgeEl) {
+        if (count > 0) {
+          badgeEl.textContent = count;
+          badgeEl.style.display = "inline-block";
+        } else {
+          badgeEl.style.display = "none";
+        }
+      }
+    }
+
+    function createBadgeElement() {
+      const tabBtn = document.querySelector('.tabs button[data-tab="unverified"]');
+      if (!tabBtn) return null;
+      tabBtn.classList.add("badge-container");
+      const badge = document.createElement("span");
+      badge.id = "unverifiedBadge";
+      badge.className = "badge";
+      badge.style.display = "none";
+      tabBtn.appendChild(badge);
+      return badge;
+    }
+
+    function highlightUnverifiedRows() {
+      setTimeout(() => {
+        const rows = document.querySelectorAll("#t_unverified tbody tr");
+        rows.forEach(r => {
+          r.classList.add("highlight-row");
+          setTimeout(() => r.classList.remove("highlight-row"), 2000);
+        });
+      }, 100);
+    }
 
     async function loadUserList() {
       const res = await fetch(`${API_BASE}/api/users`);
@@ -292,12 +365,14 @@
       if (users.length === 0) { div.innerHTML = "<p>אין עדיין משתמשים - צור את הראשון</p>"; return; }
       div.innerHTML = users.map(u => `<button class="action" style="display:block;width:100%;margin-bottom:6px;" onclick="promptLogin('${u.username}')">${u.username}</button>`).join("");
     }
+
     function promptLogin(username) {
       pendingUsername = username;
       document.getElementById("lp_username").textContent = username;
       document.getElementById("lp_password").value = "";
       document.getElementById("loginPrompt").style.display = "block";
     }
+
     async function doLogin() {
       const password = document.getElementById("lp_password").value;
       const msg = document.getElementById("lp_msg");
@@ -311,42 +386,22 @@
       localStorage.setItem("smartexpense_user", JSON.stringify(data));
       document.getElementById("institutionName").textContent = "- " + data.username;
       document.getElementById("loginScreen").style.display = "none";
-      document.getElementById("loginPrompt").style.display = "none";
       document.getElementById("app").style.display = "block";
       loadDashboard();
       showTab("upload");
       showMode("c");
-      manualSync();
+      startAutoSync();
     }
-    document.getElementById("newUserForm").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const msg = document.getElementById("nu_msg");
-      const res = await fetch(`${API_BASE}/api/users`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username: document.getElementById("nu_username").value,
-          password: document.getElementById("nu_password").value,
-          admin_password: document.getElementById("nu_admin").value,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) { msg.className = "msg err"; msg.textContent = data.error; return; }
-      msg.className = "msg ok"; msg.textContent = "נוצר! אפשר להתחבר עכשיו.";
-      e.target.reset();
-      loadUserList();
-    });
-    loadUserList();
 
     function logout() {
+      if (autoSyncInterval) clearInterval(autoSyncInterval);
       localStorage.removeItem("smartexpense_user");
       currentUser = null;
       document.getElementById("app").style.display = "none";
       document.getElementById("loginScreen").style.display = "block";
       loadUserList();
     }
-    function switchUser() {
-      logout();
-    }
+    function switchUser() { logout(); }
 
     function tryAutoLogin() {
       const saved = localStorage.getItem("smartexpense_user");
@@ -358,7 +413,7 @@
         loadDashboard();
         showTab("upload");
         showMode("c");
-        manualSync();
+        startAutoSync();
         return true;
       }
       return false;
@@ -366,7 +421,6 @@
 
     const monthInput = document.getElementById("month");
     monthInput.value = new Date().toISOString().slice(0,7);
-    let selectedExistingId = null;
 
     function toggleSidebar() {
       const sb = document.getElementById("sidebar");
@@ -380,70 +434,6 @@
     async function manualSync() {
       await fetch(`${API_BASE}/api/sync-drive`, { method: "POST" });
       loadDashboard();
-    }
-
-    let receiptsCache = {};
-    function cacheRows(rows) { rows.forEach(r => receiptsCache[r.id] = r); }
-
-    function rowActions(id) {
-      return `
-        <button class="action secondary" style="padding:4px 8px;font-size:12px;" onclick="openEditModal(${id})">✏️</button>
-        <button class="action secondary" style="padding:4px 8px;font-size:12px;background:#c0392b;" onclick="deleteReceipt(${id})">🗑️</button>
-      `;
-    }
-
-    function openEditModal(id) {
-      const r = receiptsCache[id];
-      if (!r) return;
-      document.getElementById("editForm").dataset.id = id;
-      document.getElementById("ed_date").value = r.receipt_date || "";
-      document.getElementById("ed_amount").value = r.amount || "";
-      document.getElementById("ed_supplier").value = r.supplier_name || "";
-      document.getElementById("ed_taxid").value = r.tax_id || "";
-      document.getElementById("ed_category").value = r.category || "";
-      document.getElementById("ed_bank").value = r.bank_details || "";
-      document.getElementById("ed_notes").value = r.notes || "";
-      document.getElementById("ed_status").value = r.status;
-      document.getElementById("editModal").style.display = "block";
-    }
-    function closeEditModal() { document.getElementById("editModal").style.display = "none"; }
-
-    document.getElementById("editForm").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const id = e.target.dataset.id;
-      const msg = document.getElementById("edit_msg");
-      const res = await fetch(`${API_BASE}/api/receipts/${id}`, {
-        method: "PATCH", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          date: document.getElementById("ed_date").value,
-          amount: document.getElementById("ed_amount").value,
-          supplier_name: document.getElementById("ed_supplier").value,
-          tax_id: document.getElementById("ed_taxid").value,
-          category: document.getElementById("ed_category").value,
-          bank_details: document.getElementById("ed_bank").value,
-          notes: document.getElementById("ed_notes").value,
-          status: document.getElementById("ed_status").value,
-        }),
-      });
-      if (res.ok) {
-        closeEditModal();
-        loadDashboard();
-        const activeTab = document.querySelector(".tabs button.active");
-        if (activeTab) loadTab(activeTab.dataset.tab);
-      } else { msg.className = "msg err"; msg.textContent = "שגיאה בשמירה"; }
-    });
-
-    function previewFile(inputId, previewId) {
-      const file = document.getElementById(inputId).files[0];
-      const div = document.getElementById(previewId);
-      if (!file) { div.innerHTML = ""; return; }
-      if (file.type.startsWith("image/")) {
-        div.innerHTML = `<img src="${URL.createObjectURL(file)}" style="max-width:100%;max-height:300px;border-radius:8px;border:1px solid #ddd;">`;
-      } else if (file.type === "application/pdf") {
-        div.innerHTML = `<embed src="${URL.createObjectURL(file)}" type="application/pdf" style="width:100%;height:300px;border-radius:8px;border:1px solid #ddd;">`;
-      } else {
-        div.innerHTML = `<p>קובץ נבחר: ${file.name}</p>`;
-      }
     }
 
     function showTab(name) {
@@ -462,205 +452,35 @@
       document.querySelector(`.subtabs button[data-mode="${mode}"]`).classList.add("active");
     }
 
-    function receiptCell(r) {
-      if (r.drive_file_id) return `<button class="action secondary" onclick="openPreview('${r.drive_file_id}')">📄 קבלה</button>`;
-      return `<span style="color:#c0392b;cursor:pointer;" onclick="goUploadFor(${r.id})">⚠ להעלות קבלה</span>`;
-    }
-    function goUploadFor(id) {
-      showTab("upload"); showMode("b");
-      document.getElementById("b_amount").value = "";
-      searchExisting();
-    }
-
     async function loadDashboard() {
       const month = monthInput.value;
       const res = await fetch(`${API_BASE}/api/dashboard?month=${month}&user_id=${currentUser.id}`);
       const data = await res.json();
       document.getElementById("c_month_total").textContent = "₪" + data.month_total.total.toLocaleString();
-      document.getElementById("c_unverified").textContent = data.unverified_count;
       document.getElementById("c_unpaid").textContent = "₪" + data.unpaid.total.toLocaleString();
       document.getElementById("c_paid").textContent = "₪" + data.paid_this_month.total.toLocaleString();
+      updateNotificationBadge(data.unverified_count);
     }
 
     async function loadTab(name) {
       const month = monthInput.value;
       const uid = currentUser.id;
-      if (name === "expenses") {
-        const res = await fetch(`${API_BASE}/api/receipts?month=${month}&user_id=${uid}`);
-        const rows = await res.json();
-        cacheRows(rows);
-        document.querySelector("#t_expenses tbody").innerHTML = rows.map(r => `
-          <tr><td>${r.receipt_date||""}</td><td>${r.supplier_name||""}</td><td>₪${(r.amount||0).toLocaleString()}</td>
-          <td>${r.status}</td><td>${receiptCell(r)}</td><td>${rowActions(r.id)}</td></tr>
-        `).join("");
-      }
-      if (name === "unpaid") {
-        const res1 = await fetch(`${API_BASE}/api/receipts?status=unpaid&user_id=${uid}`);
-        const res2 = await fetch(`${API_BASE}/api/receipts?status=no_receipt&user_id=${uid}`);
-        const rows = [...(await res1.json()), ...(await res2.json())];
-        cacheRows(rows);
-        document.querySelector("#t_unpaid tbody").innerHTML = rows.map(r => `
-          <tr><td>${r.receipt_date||""}</td><td>${r.supplier_name||""}</td><td>₪${(r.amount||0).toLocaleString()}</td>
-          <td>${r.tax_id||""}</td><td>${receiptCell(r)}</td><td>${rowActions(r.id)}</td></tr>
-        `).join("");
-      }
-      if (name === "paid") {
-        const res = await fetch(`${API_BASE}/api/receipts?status=paid&month=${month}&user_id=${uid}`);
-        const rows = await res.json();
-        cacheRows(rows);
-        document.querySelector("#t_paid tbody").innerHTML = rows.map(r => `
-          <tr><td>${r.receipt_date||""}</td><td>${r.supplier_name||""}</td><td>₪${(r.amount||0).toLocaleString()}</td>
-          <td>${r.drive_file_link ? `<a class="file-link" href="${r.drive_file_link}" target="_blank">צפה</a>` : ""}</td><td>${rowActions(r.id)}</td></tr>
-        `).join("");
-      }
       if (name === "unverified") {
         const res = await fetch(`${API_BASE}/api/receipts?status=unverified&user_id=${uid}`);
         const rows = await res.json();
         document.querySelector("#t_unverified tbody").innerHTML = rows.map(r => `
           <tr>
-            <td>${r.drive_file_id ? `<button class="action secondary" onclick="openPreview('${r.drive_file_id}')">תצוגה מקדימה</button>` : "אין קובץ"}</td>
+            <td>${r.drive_file_id ? `<a class="file-link" href="${r.drive_file_link}" target="_blank">צפה בקובץ</a>` : "אין קובץ"}</td>
             <td><input type="date" value="${r.receipt_date||""}" id="uv_date_${r.id}"></td>
             <td><input type="text" value="${r.supplier_name||""}" id="uv_supplier_${r.id}"></td>
             <td><input type="number" step="0.01" value="${r.amount||""}" id="uv_amount_${r.id}"></td>
             <td><input type="text" value="${r.tax_id||""}" id="uv_taxid_${r.id}"></td>
             <td><button class="action" onclick="approveReceipt(${r.id})">אשר</button></td>
-            <td><button class="action secondary" style="background:#c0392b" onclick="deleteReceipt(${r.id})">מחק</button></td>
+            <td><button class="action secondary" style="background:var(--danger)" onclick="deleteReceipt(${r.id})">מחק</button></td>
           </tr>
         `).join("");
       }
-      if (name === "suppliers") {
-        const res = await fetch(`${API_BASE}/api/suppliers`);
-        const rows = await res.json();
-        document.querySelector("#t_suppliers tbody").innerHTML = rows.map(s => `
-          <tr><td>${s.name}</td><td>${s.tax_id||""}</td><td>${s.phone||""}</td>
-          <td>₪${(s.total_spent||0).toLocaleString()}</td><td>₪${(s.total_paid||0).toLocaleString()}</td></tr>
-        `).join("");
-      }
-      if (name === "settings") {
-        document.getElementById("set_email").value = currentUser.email || "";
-      }
     }
-
-    // ===== מצב א: הוצאה ללא קבלה =====
-    document.getElementById("formA").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const msg = document.getElementById("a_msg");
-      msg.className = "msg"; msg.textContent = "שומר...";
-      const res = await fetch(`${API_BASE}/api/receipts/manual`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          date: document.getElementById("a_date").value,
-          amount: parseFloat(document.getElementById("a_amount").value),
-          supplier_name: document.getElementById("a_supplier").value,
-          category: document.getElementById("a_category").value,
-          bank_details: document.getElementById("a_bank").value,
-          phone: document.getElementById("a_phone").value,
-          email: document.getElementById("a_email").value,
-          notes: document.getElementById("a_notes").value,
-          user_id: currentUser.id,
-        }),
-      });
-      if (res.ok) { msg.className = "msg ok"; msg.textContent = "נשמר!"; e.target.reset(); loadDashboard(); }
-      else { msg.className = "msg err"; msg.textContent = "שגיאה: " + (await res.json()).error; }
-    });
-
-    // ===== מצב ב: העלה קבלה להוצאה קיימת =====
-    async function searchExisting() {
-      const amount = document.getElementById("b_amount").value;
-      const supplier = document.getElementById("b_supplier").value.trim();
-      const res = await fetch(`${API_BASE}/api/receipts?status=no_receipt&user_id=${currentUser.id}`);
-      let rows = await res.json();
-      if (amount) rows = rows.filter(r => Math.abs(r.amount - parseFloat(amount)) < 1);
-      if (supplier) rows = rows.filter(r => (r.supplier_name||"").includes(supplier));
-      const div = document.getElementById("b_results");
-      if (rows.length === 0) { div.innerHTML = "<p>לא נמצאו הוצאות תואמות</p>"; return; }
-      div.innerHTML = rows.map(r => `
-        <div class="pick-row">
-          <span>${r.receipt_date||""} - ${r.supplier_name||""} - ₪${(r.amount||0).toLocaleString()}</span>
-          <button class="action" onclick="pickExisting(${r.id})">בחר</button>
-        </div>
-      `).join("");
-    }
-    function pickExisting(id) {
-      selectedExistingId = id;
-      document.getElementById("b_selected_id").textContent = id;
-      document.getElementById("b_attach").style.display = "block";
-    }
-    async function attachFile() {
-      const msg = document.getElementById("b_msg");
-      const file = document.getElementById("b_file").files[0];
-      if (!file) { msg.className="msg err"; msg.textContent = "בחר קובץ קודם"; return; }
-      msg.className = "msg"; msg.textContent = "מעלה...";
-      const fd = new FormData();
-      fd.append("file", file);
-      const res = await fetch(`${API_BASE}/api/receipts/${selectedExistingId}/attach`, { method: "POST", body: fd });
-      if (res.ok) { msg.className = "msg ok"; msg.textContent = "צורף בהצלחה!"; loadDashboard(); }
-      else { msg.className = "msg err"; msg.textContent = "שגיאה"; }
-    }
-
-    // ===== מצב ג: הוצאה חדשה עם קבלה =====
-    async function runSmartScan() {
-      const msg = document.getElementById("c_msg");
-      const file = document.getElementById("c_file").files[0];
-      if (!file) { msg.className="msg err"; msg.textContent = "בחר קובץ קודם"; return; }
-      msg.className = "msg"; msg.textContent = "סורק...";
-      const fd = new FormData();
-      fd.append("file", file);
-      const res = await fetch(`${API_BASE}/api/ocr-preview`, { method: "POST", body: fd });
-      const data = await res.json();
-      if (data.extracted) {
-        if (data.extracted.date) document.getElementById("c_date").value = data.extracted.date;
-        if (data.extracted.amount) document.getElementById("c_amount").value = data.extracted.amount;
-        if (data.extracted.supplier_name) document.getElementById("c_supplier").value = data.extracted.supplier_name;
-        if (data.extracted.tax_id) document.getElementById("c_taxid").value = data.extracted.tax_id;
-        msg.className = "msg ok"; msg.textContent = "זוהה! אפשר לתקן ידנית ואז לשמור.";
-      } else { msg.className = "msg err"; msg.textContent = "לא זוהה כלום, מלא ידנית"; }
-    }
-
-    document.getElementById("formC").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const msg = document.getElementById("c_msg");
-      msg.className = "msg"; msg.textContent = "מעלה...";
-      const fd = new FormData();
-      fd.append("file", document.getElementById("c_file").files[0]);
-      fd.append("mode", "verify_now");
-      fd.append("user_id", currentUser.id);
-      if (document.getElementById("c_date").value) fd.append("date", document.getElementById("c_date").value);
-      fd.append("amount", document.getElementById("c_amount").value);
-      fd.append("supplier_name", document.getElementById("c_supplier").value);
-      if (document.getElementById("c_taxid").value) fd.append("tax_id", document.getElementById("c_taxid").value);
-      if (document.getElementById("c_category").value) fd.append("category", document.getElementById("c_category").value);
-      if (document.getElementById("c_bank").value) fd.append("bank_details", document.getElementById("c_bank").value);
-      if (document.getElementById("c_phone").value) fd.append("phone", document.getElementById("c_phone").value);
-      if (document.getElementById("c_email").value) fd.append("email", document.getElementById("c_email").value);
-      if (document.getElementById("c_notes").value) fd.append("notes", document.getElementById("c_notes").value);
-      try {
-        const res = await fetch(`${API_BASE}/api/receipts/upload`, { method: "POST", body: fd });
-        if (!res.ok) throw new Error((await res.json()).error || "שגיאה");
-        msg.className = "msg ok"; msg.textContent = "נשמר בהצלחה!";
-        e.target.reset();
-        loadDashboard();
-      } catch (err) {
-        msg.className = "msg err"; msg.textContent = "שגיאה: " + err.message;
-      }
-    });
-
-    // ===== ספקים =====
-    document.getElementById("supplierForm").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const msg = document.getElementById("s_msg");
-      const res = await fetch(`${API_BASE}/api/suppliers`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: document.getElementById("s_name").value,
-          tax_id: document.getElementById("s_taxid").value,
-          phone: document.getElementById("s_phone").value,
-          bank_account: document.getElementById("s_account").value,
-        }),
-      });
-      if (res.ok) { msg.className = "msg ok"; msg.textContent = "נשמר!"; e.target.reset(); loadTab("suppliers"); }
-      else { msg.className = "msg err"; msg.textContent = "שגיאה בשמירה"; }
-    });
 
     async function approveReceipt(id) {
       const date = document.getElementById(`uv_date_${id}`).value;
@@ -672,25 +492,8 @@
         body: JSON.stringify({ date, amount, supplier_name, tax_id }),
       });
       if (res.ok) { loadTab("unverified"); loadDashboard(); }
-      else alert("שגיאה באישור הקבלה - בדוק שכל השדות מלאים");
+      else alert("שגיאה באישור הקבלה");
     }
-
-    // ===== ייצוא =====
-    document.getElementById("exportXlsxBtn").addEventListener("click", async () => {
-      const msg = document.getElementById("export_msg");
-      msg.className = "msg"; msg.textContent = "מייצא...";
-      try {
-        const res = await fetch(`${API_BASE}/api/export?format=xlsx&user_id=${currentUser.id}`, { method: "POST" });
-        if (!res.ok) throw new Error((await res.json()).error || "שגיאה");
-        const blob = await res.blob();
-        const a = document.createElement("a");
-        a.href = URL.createObjectURL(blob);
-        a.download = "hozaot.csv";
-        a.click();
-        msg.className = "msg ok"; msg.textContent = "יוצא בהצלחה!";
-        loadTab("unpaid"); loadDashboard();
-      } catch (err) { msg.className = "msg err"; msg.textContent = "שגיאה: " + err.message; }
-    });
 
     document.getElementById("exportDocBtn").addEventListener("click", async () => {
       const msg = document.getElementById("export_msg");
@@ -700,65 +503,13 @@
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "שגיאה");
         msg.className = "msg ok";
-        msg.innerHTML = `נוצר בהצלחה! <a class="file-link" href="${data.doc_link}" target="_blank">פתח מסמך</a>`;
-        loadTab("unpaid"); loadDashboard();
-      } catch (err) { msg.className = "msg err"; msg.textContent = "שגיאה: " + err.message; }
-    });
-
-    document.getElementById("syncDriveBtn").addEventListener("click", async () => {
-      const msg = document.getElementById("sync_msg");
-      msg.className = "msg"; msg.textContent = "סורק את הדרייב...";
-      try {
-        const res = await fetch(`${API_BASE}/api/sync-drive`, { method: "POST" });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "שגיאה");
-        msg.className = "msg ok"; msg.textContent = `נסרקו משתמשים: ${data.users_scanned}, נוספו ${data.added} קבלות חדשות`;
-        loadTab("unverified"); loadDashboard();
-      } catch (err) { msg.className = "msg err"; msg.textContent = "שגיאה: " + err.message; }
-    });
-
-    async function deleteReceipt(id) {
-      if (!confirm("למחוק את הקבלה הזו לצמיתות (גם מהדרייב)?")) return;
-      const res = await fetch(`${API_BASE}/api/receipts/${id}`, { method: "DELETE" });
-      if (res.ok) {
+        msg.innerHTML = `נוצר בהצלחה! <a class="file-link" href="${data.doc_link}" target="_blank">פתח מסמך Google Docs</a>`;
         loadDashboard();
-        const activeTab = document.querySelector(".tabs button.active");
-        loadTab(activeTab ? activeTab.dataset.tab : "unverified");
-      }
-      else alert("שגיאה במחיקה");
-    }
-
-    // רענון אוטומטי כל דקה - כדי שספירת "לא אומתו" תתעדכן לבד אחרי שהסנכרון האוטומטי (כל 15 דק') מוצא קבלות חדשות
-    let lastUnverifiedCount = 0;
-    setInterval(async () => {
-      const res = await fetch(`${API_BASE}/api/dashboard?month=${monthInput.value}`);
-      const data = await res.json();
-      const card = document.getElementById("c_unverified");
-      if (data.unverified_count > lastUnverifiedCount && lastUnverifiedCount > 0) {
-        card.parentElement.style.outline = "3px solid #d68910";
-      }
-      lastUnverifiedCount = data.unverified_count;
-      card.textContent = data.unverified_count;
-    }, 60000);
-
-    document.getElementById("settingsForm").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const msg = document.getElementById("settings_msg");
-      const email = document.getElementById("set_email").value;
-      const res = await fetch(`${API_BASE}/api/users/${currentUser.id}/settings`, {
-        method: "PATCH", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-      if (res.ok) {
-        currentUser.email = email;
-        localStorage.setItem("smartexpense_user", JSON.stringify(currentUser));
-        msg.className = "msg ok"; msg.textContent = "נשמר!";
-      } else { msg.className = "msg err"; msg.textContent = "שגיאה בשמירה"; }
+      } catch (err) { msg.className = "msg err"; msg.textContent = "שגיאה: " + err.message; }
     });
 
-    monthInput.addEventListener("change", () => loadDashboard());
+    loadUserList();
     tryAutoLogin();
-  </script>  </div>
-
+  </script>
 </body>
 </html>
