@@ -10,7 +10,10 @@ binding = "DB"
 database_name = "smartexpense-db"
 database_id = "0784898e-6460-40b8-90d6-d38ceff6f459"
 
-# בהמשך, כשנחבר Drive/Gmail, המפתחות יוכנסו כ-secrets ולא כאן:
-#   npx wrangler secret put GOOGLE_CLIENT_ID
-#   npx wrangler secret put GOOGLE_CLIENT_SECRET
-#   npx wrangler secret put GOOGLE_REFRESH_TOKEN
+[vars]
+ROOT_FOLDER_ID = "1rfWzSoA7ZaOxA7137UGGURLKgzZwLxCC"
+
+# כשיהיה מפתח Google Service Account, תריץ:
+#   npx wrangler secret put GOOGLE_SA_EMAIL
+#   npx wrangler secret put GOOGLE_SA_KEY
+# (הפרטי private_key מתוך קובץ ה-JSON שמורידים מ-Google Cloud Console)
