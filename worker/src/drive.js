@@ -1,5 +1,5 @@
 // drive.js
-import { getGoogleAccessToken } from "./google-auth.js";
+import { getUserAccessToken as getGoogleAccessToken } from "./user-auth.js";
 
 async function driveFetch(env, path, options = {}) {
   const token = await getGoogleAccessToken(env);
@@ -79,7 +79,7 @@ export async function moveFile(env, fileId, newParentId) {
   return res.json();
 }
 
-// מעביר קובץ לאשפה בדרייב (מחיקה רכה)
+// מעביר קובץ לפח (trash) בדרייב
 export async function trashFile(env, fileId) {
   const token = await getGoogleAccessToken(env);
   const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}`, {
@@ -99,4 +99,9 @@ export async function downloadFile(env, fileId) {
   });
   if (!res.ok) throw new Error("Drive download failed: " + (await res.text()));
   return res.arrayBuffer();
+}
+export async function listFiles(env, folderId) {
+  const q = encodeURIComponent(`'${folderId}' in parents and trashed = false and mimeType != 'application/vnd.google-apps.folder'`);
+  const data = await driveFetch(env, `/files?q=${q}&fields=files(id,name,webViewLink,mimeType)`);
+  return data.files || [];
 }

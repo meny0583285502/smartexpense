@@ -2,290 +2,185 @@
 <html lang="he" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>מערכת ניהול קבלות למוסד</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --bg: #f2f4f8;
-    --surface: #ffffff;
-    --surface-alt: #f7f8fb;
-    --border: #e6e8ee;
-    --text: #171923;
-    --text-dim: #6b7280;
-    --accent: #4f46e5;
-    --accent-dim: #eef0ff;
-    --accent-2: #06b6d4;
-    --danger: #dc2626;
-    --danger-dim: #fee2e2;
-    --warn: #d97706;
-    --warn-dim: #fef3e0;
-    --ok: #16a34a;
-    --ok-dim: #e7f8ed;
-    --radius: 16px;
-    --radius-sm: 10px;
-    --shadow: 0 1px 2px rgba(16,24,40,.04), 0 8px 24px -12px rgba(16,24,40,.10);
-  }
-  * { box-sizing: border-box; }
-  body {
-    font-family: 'Heebo', system-ui, sans-serif;
-    background:
-      radial-gradient(1200px 500px at 100% -10%, #eef0ff 0%, transparent 60%),
-      var(--bg);
-    margin:0; padding:0; color:var(--text);
-  }
-  header.top {
-    position: sticky; top:0; z-index:10;
-    background: rgba(255,255,255,.85); backdrop-filter: blur(10px);
-    border-bottom: 1px solid var(--border);
-    padding: 16px 28px;
-    display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;
-  }
-  header.top h1 {
-    font-size: 18px; font-weight:700; margin:0; display:flex; align-items:center; gap:10px;
-  }
-  header.top h1 .logo {
-    width:34px; height:34px; border-radius:10px;
-    background: linear-gradient(135deg, var(--accent), var(--accent-2));
-    display:flex; align-items:center; justify-content:center; font-size:16px;
-  }
-  header.top input[type=month] {
-    padding:8px 12px; border:1px solid var(--border); border-radius:var(--radius-sm);
-    background:var(--surface); font-family:inherit; font-size:13px; color:var(--text);
-  }
-  main { max-width: 1180px; margin: 0 auto; padding: 24px 28px 60px; }
-
-  .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:14px; margin-bottom:28px; }
-  .card {
-    background:var(--surface); border-radius:var(--radius); padding:18px 20px;
-    box-shadow:var(--shadow); cursor:pointer; border:1px solid var(--border);
-    transition: transform .15s ease, box-shadow .15s ease;
-    position:relative; overflow:hidden;
-  }
-  .card:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(16,24,40,.06), 0 16px 32px -14px rgba(16,24,40,.16); }
-  .card::before {
-    content:""; position:absolute; inset:0 auto auto 0; width:4px; height:100%;
-    background:var(--dot,var(--accent));
-  }
-  .card .label { color:var(--text-dim); font-size:12.5px; margin-bottom:8px; font-weight:500; }
-  .card .value { font-size:26px; font-weight:800; letter-spacing:-.02em; }
-  .card.pending { --dot: var(--danger); } .card.pending .value { color:var(--danger); }
-  .card.done { --dot: var(--ok); } .card.done .value { color:var(--ok); }
-  .card.warn { --dot: var(--warn); } .card.warn .value { color:var(--warn); }
-  .card.total { --dot: var(--accent); }
-
-  .tabs { display:flex; gap:4px; margin-bottom:18px; border-bottom:1px solid var(--border); flex-wrap:wrap; }
-  .tabs button {
-    padding:10px 16px; border:none; background:transparent; cursor:pointer;
-    font-size:13.5px; font-weight:600; color:var(--text-dim); font-family:inherit;
-    border-bottom:2px solid transparent; margin-bottom:-1px; transition: color .15s;
-  }
-  .tabs button:hover { color:var(--text); }
-  .tabs button.active { color:var(--accent); border-bottom-color:var(--accent); }
-
-  .panel { background:var(--surface); border-radius:var(--radius); padding:24px; box-shadow:var(--shadow); border:1px solid var(--border); }
+  body { font-family: system-ui, sans-serif; background:#f5f6f8; margin:0; padding:24px; color:#1a1a1a; }
+  h1 { font-size:20px; margin-bottom:20px; }
+  h2 { font-size:15px; margin:0 0 10px; }
+  .cards { display:flex; gap:14px; flex-wrap:wrap; margin-bottom:24px; }
+  .card { background:#fff; border-radius:12px; padding:16px 20px; box-shadow:0 1px 3px rgba(0,0,0,.08); min-width:170px; cursor:pointer; }
+  .card .label { color:#666; font-size:12px; margin-bottom:6px; }
+  .card .value { font-size:24px; font-weight:700; }
+  .card.pending .value { color:#c0392b; }
+  .card.done .value { color:#1c8a4b; }
+  .card.warn .value { color:#d68910; }
+  .tabs { display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; }
+  .tabs button { padding:8px 14px; border:1px solid #ddd; background:#fff; border-radius:8px; cursor:pointer; font-size:13px; }
+  .tabs button.active { background:#1a1a1a; color:#fff; border-color:#1a1a1a; }
+  .subtabs { display:flex; gap:6px; margin-bottom:16px; }
+  .subtabs button { padding:6px 12px; border:1px solid #ccc; background:#f0f0f0; border-radius:6px; cursor:pointer; font-size:12px; }
+  .subtabs button.active { background:#4c4cd6; color:#fff; border-color:#4c4cd6; }
+  .panel { background:#fff; border-radius:12px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,.08); max-width:820px; }
   .panel.hidden { display:none; }
-  .panel h2 { font-size:15px; margin:0 0 16px; font-weight:700; }
-
-  form.upload, form.supplier { display:flex; flex-direction:column; gap:10px; max-width:420px; }
-  .field-row { display:flex; align-items:center; gap:8px; }
-  input, select {
-    padding:10px 12px; font-size:13.5px; border:1px solid var(--border); border-radius:var(--radius-sm);
-    background:var(--surface-alt); font-family:inherit; color:var(--text); width:100%;
-  }
-  input:focus, select:focus { outline:2px solid var(--accent-dim); border-color:var(--accent); }
-  label.checkbox { display:flex; align-items:center; gap:8px; font-size:13px; color:var(--text-dim); cursor:pointer; padding:4px 2px; }
-  label.checkbox input { width:auto; }
-
-  button.action {
-    padding:11px; font-size:13.5px; font-weight:700; border:none; border-radius:var(--radius-sm);
-    background: linear-gradient(135deg, var(--accent), #6d5ef5); color:#fff; cursor:pointer; margin-top:4px;
-    box-shadow: 0 4px 12px -4px rgba(79,70,229,.5);
-    transition: opacity .15s, transform .1s;
-  }
-  button.action:hover { opacity:.92; }
-  button.action:active { transform: scale(.98); }
-  button.action.secondary { background:var(--surface-alt); color:var(--text); border:1px solid var(--border); box-shadow:none; }
-
+  form { display:flex; flex-direction:column; gap:8px; max-width:420px; }
+  input, select { padding:8px 10px; font-size:14px; border:1px solid #ddd; border-radius:6px; }
+  button.action { padding:10px; font-size:14px; border:none; border-radius:6px; background:#1a1a1a; color:#fff; cursor:pointer; margin-top:4px; }
+  button.action:hover { background:#333; }
+  button.secondary { background:#666; }
   table { width:100%; border-collapse:collapse; font-size:13px; margin-top:10px; }
-  th, td { text-align:right; padding:9px 8px; border-bottom:1px solid var(--border); vertical-align:middle; }
-  th { color:var(--text-dim); font-weight:600; font-size:12px; text-transform:uppercase; letter-spacing:.02em; }
-  tbody tr:hover { background:var(--surface-alt); }
-  td input, td select { padding:6px 8px; font-size:12.5px; }
-
-  .msg { font-size:12.5px; min-height:16px; margin-top:8px; font-weight:500; }
-  .msg.ok { color:var(--ok); }
-  .msg.err { color:var(--danger); }
-  a.file-link { color:var(--accent); text-decoration:none; font-weight:600; }
-  a.file-link:hover { text-decoration:underline; }
-
-  .badge { display:inline-block; padding:3px 10px; border-radius:999px; font-size:11.5px; font-weight:700; }
-  .badge.no_receipt { background:var(--warn-dim); color:var(--warn); }
-  .badge.unverified { background:#eef0ff; color:var(--accent); }
-  .badge.unpaid { background:var(--danger-dim); color:var(--danger); }
-  .badge.paid { background:var(--ok-dim); color:var(--ok); }
-
-  .filters { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:14px; }
-  .filters select, .filters input { width:auto; min-width:140px; }
-
-  .btn-icon {
-    border:none; background:var(--surface-alt); width:30px; height:30px; border-radius:8px;
-    cursor:pointer; font-size:14px; line-height:1; display:inline-flex; align-items:center; justify-content:center;
-    border:1px solid var(--border);
-  }
-  .btn-icon:hover { background:var(--accent-dim); }
-  .btn-icon.danger:hover { background:var(--danger-dim); }
-  .row-actions { display:flex; gap:6px; }
-  label.attach {
-    display:inline-flex; align-items:center; gap:4px; font-size:12px; color:var(--accent);
-    cursor:pointer; font-weight:600; padding:4px 8px; border-radius:8px; background:var(--accent-dim);
-  }
-  .table-scroll { overflow-x:auto; }
+  th, td { text-align:right; padding:6px 8px; border-bottom:1px solid #eee; }
+  th { color:#666; font-weight:600; }
+  .msg { font-size:13px; min-height:16px; margin-top:6px; }
+  .msg.ok { color:#1c8a4b; }
+  .msg.err { color:#c0392b; }
+  a.file-link { color:#2563eb; text-decoration:none; }
+  .pick-row { display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid #eee; font-size:13px; }
+  .pick-row button { padding:4px 10px; font-size:12px; }
 </style>
 </head>
 <body>
-  <header class="top">
-    <h1><span class="logo">🧾</span> ניהול קבלות למוסד</h1>
-    <input type="month" id="month">
-  </header>
+  <h1>מערכת ניהול קבלות למוסד</h1>
+  <input type="month" id="month">
 
-  <main>
-    <div class="cards">
-      <div class="card total" onclick="showTab('expenses')">
-        <div class="label">סך הוצאות החודש</div>
-        <div class="value" id="c_month_total">-</div>
-      </div>
-      <div class="card warn" onclick="showTab('unverified')">
-        <div class="label">קבלות שלא אומתו</div>
-        <div class="value" id="c_unverified">-</div>
-      </div>
-      <div class="card pending" onclick="showTab('unpaid')">
-        <div class="label">הוצאות שלא יצאו להחזר</div>
-        <div class="value" id="c_unpaid">-</div>
-      </div>
-      <div class="card done" onclick="showTab('paid')">
-        <div class="label">יצאו להחזר החודש</div>
-        <div class="value" id="c_paid">-</div>
-      </div>
+  <div class="cards">
+    <div class="card" onclick="showTab('expenses')">
+      <div class="label">סך הוצאות החודש</div>
+      <div class="value" id="c_month_total">-</div>
+    </div>
+    <div class="card warn" onclick="showTab('unverified')">
+      <div class="label">קבלות שלא אומתו</div>
+      <div class="value" id="c_unverified">-</div>
+    </div>
+    <div class="card pending" onclick="showTab('unpaid')">
+      <div class="label">הוצאות שלא יצאו להחזר</div>
+      <div class="value" id="c_unpaid">-</div>
+    </div>
+    <div class="card done" onclick="showTab('paid')">
+      <div class="label">יצאו להחזר החודש</div>
+      <div class="value" id="c_paid">-</div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button data-tab="upload" onclick="showTab('upload')">הזנת הוצאה</button>
+    <button data-tab="expenses" onclick="showTab('expenses')">הוצאות החודש</button>
+    <button data-tab="unpaid" onclick="showTab('unpaid')">לא יצאו להחזר</button>
+    <button data-tab="paid" onclick="showTab('paid')">יצאו להחזר</button>
+    <button data-tab="unverified" onclick="showTab('unverified')">לא אומתו</button>
+    <button data-tab="suppliers" onclick="showTab('suppliers')">ספקים</button>
+  </div>
+
+  <!-- ===== פאנל הזנת הוצאה - 3 מצבים ===== -->
+  <div id="panel-upload" class="panel">
+    <div class="subtabs">
+      <button data-mode="a" onclick="showMode('a')">הוצאה חדשה ללא קבלה</button>
+      <button data-mode="b" onclick="showMode('b')">העלה קבלה להוצאה קיימת</button>
+      <button data-mode="c" onclick="showMode('c')">הוצאה חדשה עם קבלה</button>
     </div>
 
-    <div class="tabs">
-      <button data-tab="upload" onclick="showTab('upload')">העלאת קבלה</button>
-      <button data-tab="expenses" onclick="showTab('expenses')">הוצאות החודש</button>
-      <button data-tab="unpaid" onclick="showTab('unpaid')">לא יצאו להחזר</button>
-      <button data-tab="paid" onclick="showTab('paid')">יצאו להחזר</button>
-      <button data-tab="unverified" onclick="showTab('unverified')">לא אומתו</button>
-      <button data-tab="suppliers" onclick="showTab('suppliers')">ספקים</button>
-      <button data-tab="full" onclick="showTab('full')">טבלה מלאה</button>
-    </div>
-
-    <div id="panel-upload" class="panel">
-      <h2>העלאת קבלה חדשה</h2>
-      <form class="upload" id="uploadForm">
-        <div class="field-row" id="u_file_row">
-          <input type="file" id="u_file" accept="image/*,application/pdf" required>
-        </div>
-        <input type="date" id="u_date" placeholder="תאריך (אם לא ידוע - ינוחש מה-OCR)">
-        <input type="number" id="u_amount" placeholder="סכום (₪) - אם ריק, ינוחש מה-OCR" step="0.01">
-        <input type="text" id="u_supplier" placeholder="שם ספק - אם ריק, ינוחש מה-OCR">
-        <input type="text" id="u_taxid" placeholder="ח.פ - אם ריק, ינוחש מה-OCR">
-        <div class="field-row" id="u_mode_row">
-          <select id="u_mode">
-            <option value="verify_now">אישור קבלה (מוכן, יכנס ישר להוצאות)</option>
-            <option value="verify_later">העלה ואמת לאחר מכן</option>
-          </select>
-        </div>
-        <label class="checkbox">
-          <input type="checkbox" id="u_noreceipt">
-          עדיין אין ברשותי קבלה - רק לרשום את ההוצאה (אפשר לצרף קבלה מאוחר יותר מ"טבלה מלאה")
-        </label>
-        <button class="action" type="submit">שמור</button>
-        <div class="msg" id="u_msg"></div>
+    <!-- מצב א: הוצאה ללא קבלה -->
+    <div id="mode-a" class="mode-panel">
+      <h2>הוצאה חדשה ללא קבלה</h2>
+      <form id="formA">
+        <input type="date" id="a_date">
+        <input type="number" id="a_amount" placeholder="סכום (₪) - חובה" step="0.01" required>
+        <input type="text" id="a_supplier" placeholder="שם ספק - חובה" required>
+        <input type="text" id="a_category" placeholder="סעיף תקציבי">
+        <input type="text" id="a_bank" placeholder="חשבון בנק">
+        <input type="text" id="a_phone" placeholder="טלפון ספק">
+        <input type="text" id="a_email" placeholder="מייל ספק">
+        <input type="text" id="a_notes" placeholder="הערות">
+        <button class="action" type="submit">אשר הוצאה</button>
+        <div class="msg" id="a_msg"></div>
       </form>
     </div>
 
-    <div id="panel-expenses" class="panel hidden">
-      <h2>כל ההוצאות של החודש</h2>
-      <div class="table-scroll">
-        <table id="t_expenses"><thead><tr><th>תאריך</th><th>ספק</th><th>סכום</th><th>סטטוס</th><th>קובץ</th></tr></thead><tbody></tbody></table>
-      </div>
-    </div>
-
-    <div id="panel-unpaid" class="panel hidden">
-      <h2>הוצאות שלא יצאו להחזר (כולל חודשים קודמים)</h2>
-      <button class="action" id="exportBtn">ייצא עכשיו הוצאות להחזר (Excel)</button>
-      <div class="msg" id="export_msg"></div>
-      <div class="table-scroll">
-        <table id="t_unpaid"><thead><tr><th>תאריך</th><th>ספק</th><th>סכום</th><th>ח.פ</th><th>קובץ</th></tr></thead><tbody></tbody></table>
-      </div>
-    </div>
-
-    <div id="panel-paid" class="panel hidden">
-      <h2>קבלות שיצאו להחזר החודש</h2>
-      <div class="table-scroll">
-        <table id="t_paid"><thead><tr><th>תאריך</th><th>ספק</th><th>סכום</th><th>קובץ</th></tr></thead><tbody></tbody></table>
-      </div>
-    </div>
-
-    <div id="panel-unverified" class="panel hidden">
-      <h2>קבלות שממתינות לאימות</h2>
-      <div class="table-scroll">
-        <table id="t_unverified"><thead><tr><th>קובץ</th><th>תאריך (ניחוש)</th><th>ספק (ניחוש)</th><th>סכום (ניחוש)</th><th>ח.פ (ניחוש)</th><th></th></tr></thead><tbody></tbody></table>
-      </div>
-    </div>
-
-    <div id="panel-suppliers" class="panel hidden">
-      <h2>ניהול ספקים</h2>
-      <form class="supplier" id="supplierForm">
-        <input type="text" id="s_name" placeholder="שם ספק" required>
-        <input type="text" id="s_taxid" placeholder="ח.פ">
-        <input type="text" id="s_phone" placeholder="טלפון">
-        <input type="text" id="s_bank" placeholder="בנק">
-        <input type="text" id="s_branch" placeholder="סניף">
-        <input type="text" id="s_account" placeholder="מספר חשבון">
-        <button class="action" type="submit">שמור ספק</button>
-        <div class="msg" id="s_msg"></div>
+    <!-- מצב ב: העלה קבלה להוצאה קיימת -->
+    <div id="mode-b" class="mode-panel" style="display:none">
+      <h2>העלה קבלה להוצאה קיימת</h2>
+      <form id="searchB" onsubmit="return false;">
+        <input type="number" id="b_amount" placeholder="סכום לחיפוש" step="0.01">
+        <input type="text" id="b_supplier" placeholder="שם ספק לחיפוש">
+        <button class="action secondary" type="button" onclick="searchExisting()">חפש</button>
       </form>
-      <div class="table-scroll">
-        <table id="t_suppliers"><thead><tr><th>שם</th><th>ח.פ</th><th>טלפון</th><th>סה"כ הוצאות</th><th>סה"כ שולם</th></tr></thead><tbody></tbody></table>
+      <div id="b_results"></div>
+      <div id="b_attach" style="display:none;margin-top:14px;">
+        <p>קובץ עבור הוצאה #<span id="b_selected_id"></span>:</p>
+        <input type="file" id="b_file" accept="image/*,application/pdf">
+        <button class="action" type="button" onclick="attachFile()">העלה וצרף</button>
+        <div class="msg" id="b_msg"></div>
       </div>
     </div>
 
-    <div id="panel-full" class="panel hidden">
-      <h2>טבלה מלאה - עריכה וסינון</h2>
-      <div class="filters">
-        <select id="ft_status" onchange="loadFullTable()">
-          <option value="">כל הסטטוסים</option>
-          <option value="no_receipt">ללא קבלה</option>
-          <option value="unverified">לא אומתו</option>
-          <option value="unpaid">לא יצאו</option>
-          <option value="paid">יצאו</option>
-        </select>
-        <input type="month" id="ft_month" onchange="loadFullTable()">
-        <button class="action secondary" type="button" onclick="document.getElementById('ft_month').value=''; loadFullTable();">כל החודשים</button>
-        <input type="text" id="ft_supplier" placeholder="סינון לפי שם ספק" oninput="loadFullTable()">
-      </div>
-      <div class="table-scroll">
-        <table id="t_full">
-          <thead><tr><th>תאריך</th><th>ספק</th><th>סכום</th><th>ח.פ</th><th>סטטוס</th><th>קובץ</th><th>פעולות</th></tr></thead>
-          <tbody></tbody>
-        </table>
-      </div>
+    <!-- מצב ג: הוצאה חדשה עם קבלה -->
+    <div id="mode-c" class="mode-panel" style="display:none">
+      <h2>הוצאה חדשה עם קבלה</h2>
+      <form id="formC">
+        <input type="file" id="c_file" accept="image/*,application/pdf" required>
+        <button class="action secondary" type="button" onclick="runSmartScan()">הרץ סריקה חכמה</button>
+        <input type="date" id="c_date">
+        <input type="number" id="c_amount" placeholder="סכום (₪) - חובה" step="0.01" required>
+        <input type="text" id="c_supplier" placeholder="שם ספק - חובה" required>
+        <input type="text" id="c_taxid" placeholder="ח.פ">
+        <input type="text" id="c_category" placeholder="סעיף תקציבי">
+        <input type="text" id="c_bank" placeholder="חשבון בנק">
+        <input type="text" id="c_phone" placeholder="טלפון ספק">
+        <input type="text" id="c_email" placeholder="מייל ספק">
+        <input type="text" id="c_notes" placeholder="הערות">
+        <div style="display:flex;gap:8px;">
+          <button class="action" type="submit">שמור</button>
+          <button class="action secondary" type="button" onclick="document.getElementById('formC').reset()">בטל הוצאה</button>
+        </div>
+        <div class="msg" id="c_msg"></div>
+      </form>
     </div>
-  </main>
+  </div>
+
+  <div id="panel-expenses" class="panel hidden">
+    <h2>כל ההוצאות של החודש</h2>
+    <table id="t_expenses"><thead><tr><th>תאריך</th><th>ספק</th><th>סכום</th><th>סטטוס</th><th>קובץ</th></tr></thead><tbody></tbody></table>
+  </div>
+
+  <div id="panel-unpaid" class="panel hidden">
+    <h2>הוצאות שלא יצאו להחזר (כולל חודשים קודמים, כולל בלי קבלה)</h2>
+    <div style="display:flex;gap:8px;">
+      <button class="action" id="exportXlsxBtn">ייצא ל-Excel</button>
+      <button class="action" id="exportDocBtn">ייצא לדוקס (בקשות ארחות יושר)</button>
+    </div>
+    <div class="msg" id="export_msg"></div>
+    <table id="t_unpaid"><thead><tr><th>תאריך</th><th>ספק</th><th>סכום</th><th>ח.פ</th><th>קובץ</th></tr></thead><tbody></tbody></table>
+  </div>
+
+  <div id="panel-paid" class="panel hidden">
+    <h2>קבלות שיצאו להחזר החודש</h2>
+    <table id="t_paid"><thead><tr><th>תאריך</th><th>ספק</th><th>סכום</th><th>קובץ</th></tr></thead><tbody></tbody></table>
+  </div>
+
+  <div id="panel-unverified" class="panel hidden">
+    <h2>קבלות שממתינות לאימות</h2>
+    <button class="action secondary" id="syncDriveBtn">סנכרן קבצים שהוכנסו ידנית לדרייב</button>
+    <div class="msg" id="sync_msg"></div>
+    <table id="t_unverified"><thead><tr><th>קובץ</th><th>תאריך</th><th>ספק</th><th>סכום</th><th>ח.פ</th><th></th></tr></thead><tbody></tbody></table>
+  </div>
+
+  <div id="panel-suppliers" class="panel hidden">
+    <h2>ניהול ספקים</h2>
+    <form id="supplierForm">
+      <input type="text" id="s_name" placeholder="שם ספק" required>
+      <input type="text" id="s_taxid" placeholder="ח.פ">
+      <input type="text" id="s_phone" placeholder="טלפון">
+      <input type="text" id="s_account" placeholder="חשבון בנק">
+      <button class="action" type="submit">שמור ספק</button>
+      <div class="msg" id="s_msg"></div>
+    </form>
+    <table id="t_suppliers"><thead><tr><th>שם</th><th>ח.פ</th><th>טלפון</th><th>סה"כ הוצאות</th><th>סה"כ שולם</th></tr></thead><tbody></tbody></table>
+  </div>
 
   <script>
     const API_BASE = "https://smartexpense.meny85502.workers.dev";
     const monthInput = document.getElementById("month");
     monthInput.value = new Date().toISOString().slice(0,7);
-
-    const STATUS_LABELS = { no_receipt: "ללא קבלה", unverified: "לא אומתה", unpaid: "לא יצאה", paid: "יצאה" };
-
-    function statusBadge(s) {
-      return `<span class="badge ${s}">${STATUS_LABELS[s] || s}</span>`;
-    }
+    let selectedExistingId = null;
 
     function showTab(name) {
       document.querySelectorAll(".panel").forEach(p => p.classList.add("hidden"));
@@ -294,6 +189,13 @@
       const btn = document.querySelector(`.tabs button[data-tab="${name}"]`);
       if (btn) btn.classList.add("active");
       loadTab(name);
+    }
+
+    function showMode(mode) {
+      document.querySelectorAll(".mode-panel").forEach(p => p.style.display = "none");
+      document.getElementById("mode-" + mode).style.display = "block";
+      document.querySelectorAll(".subtabs button").forEach(b => b.classList.remove("active"));
+      document.querySelector(`.subtabs button[data-mode="${mode}"]`).classList.add("active");
     }
 
     async function loadDashboard() {
@@ -313,15 +215,16 @@
         const rows = await res.json();
         document.querySelector("#t_expenses tbody").innerHTML = rows.map(r => `
           <tr><td>${r.receipt_date||""}</td><td>${r.supplier_name||""}</td><td>₪${(r.amount||0).toLocaleString()}</td>
-          <td>${statusBadge(r.status)}</td><td>${r.drive_file_link ? `<a class="file-link" href="${r.drive_file_link}" target="_blank">צפה</a>` : ""}</td></tr>
+          <td>${r.status}</td><td>${r.drive_file_link ? `<a class="file-link" href="${r.drive_file_link}" target="_blank">צפה</a>` : "אין קובץ"}</td></tr>
         `).join("");
       }
       if (name === "unpaid") {
-        const res = await fetch(`${API_BASE}/api/receipts?status=unpaid`);
-        const rows = await res.json();
+        const res1 = await fetch(`${API_BASE}/api/receipts?status=unpaid`);
+        const res2 = await fetch(`${API_BASE}/api/receipts?status=no_receipt`);
+        const rows = [...(await res1.json()), ...(await res2.json())];
         document.querySelector("#t_unpaid tbody").innerHTML = rows.map(r => `
           <tr><td>${r.receipt_date||""}</td><td>${r.supplier_name||""}</td><td>₪${(r.amount||0).toLocaleString()}</td>
-          <td>${r.tax_id||""}</td><td>${r.drive_file_link ? `<a class="file-link" href="${r.drive_file_link}" target="_blank">צפה</a>` : ""}</td></tr>
+          <td>${r.tax_id||""}</td><td>${r.drive_file_link ? `<a class="file-link" href="${r.drive_file_link}" target="_blank">צפה</a>` : "אין קובץ עדיין"}</td></tr>
         `).join("");
       }
       if (name === "paid") {
@@ -354,73 +257,126 @@
           <td>₪${(s.total_spent||0).toLocaleString()}</td><td>₪${(s.total_paid||0).toLocaleString()}</td></tr>
         `).join("");
       }
-      if (name === "full") {
-        loadFullTable();
-      }
     }
 
-    async function loadFullTable() {
-      const status = document.getElementById("ft_status").value;
-      const month = document.getElementById("ft_month").value;
-      const params = [];
-      if (status) params.push(`status=${status}`);
-      if (month) params.push(`month=${month}`);
-      const res = await fetch(`${API_BASE}/api/receipts${params.length ? "?" + params.join("&") : ""}`);
-      let rows = await res.json();
-      const supplierFilter = document.getElementById("ft_supplier").value.trim().toLowerCase();
-      if (supplierFilter) rows = rows.filter(r => (r.supplier_name || "").toLowerCase().includes(supplierFilter));
-      document.querySelector("#t_full tbody").innerHTML = rows.map(fullRow).join("");
-    }
-
-    function fullRow(r) {
-      const fileCell = r.drive_file_link
-        ? `<a class="file-link" href="${r.drive_file_link}" target="_blank">צפה</a>`
-        : `<label class="attach">📎 צרף קבלה<input type="file" id="ft_file_${r.id}" style="display:none" onchange="attachFile(${r.id})"></label>`;
-      return `<tr>
-        <td><input type="date" value="${r.receipt_date||""}" id="ft_date_${r.id}"></td>
-        <td><input type="text" value="${r.supplier_name||""}" id="ft_supplier_${r.id}"></td>
-        <td><input type="number" step="0.01" value="${r.amount||""}" id="ft_amount_${r.id}"></td>
-        <td><input type="text" value="${r.tax_id||""}" id="ft_taxid_${r.id}"></td>
-        <td>
-          <select id="ft_statussel_${r.id}">
-            ${Object.entries(STATUS_LABELS).map(([v,l]) => `<option value="${v}" ${r.status===v?"selected":""}>${l}</option>`).join("")}
-          </select>
-        </td>
-        <td>${fileCell}</td>
-        <td class="row-actions">
-          <button class="btn-icon" title="שמור" onclick="saveFullRow(${r.id})">💾</button>
-          <button class="btn-icon danger" title="מחק" onclick="deleteRow(${r.id})">🗑️</button>
-        </td>
-      </tr>`;
-    }
-
-    async function saveFullRow(id) {
-      const date = document.getElementById(`ft_date_${id}`).value;
-      const amountRaw = document.getElementById(`ft_amount_${id}`).value;
-      const supplier_name = document.getElementById(`ft_supplier_${id}`).value;
-      const tax_id = document.getElementById(`ft_taxid_${id}`).value;
-      const status = document.getElementById(`ft_statussel_${id}`).value;
-      const res = await fetch(`${API_BASE}/api/receipts/${id}`, {
-        method: "PATCH", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ date, amount: amountRaw === "" ? null : parseFloat(amountRaw), supplier_name, tax_id, status }),
+    // ===== מצב א: הוצאה ללא קבלה =====
+    document.getElementById("formA").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const msg = document.getElementById("a_msg");
+      msg.className = "msg"; msg.textContent = "שומר...";
+      const res = await fetch(`${API_BASE}/api/receipts/manual`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          date: document.getElementById("a_date").value,
+          amount: parseFloat(document.getElementById("a_amount").value),
+          supplier_name: document.getElementById("a_supplier").value,
+          category: document.getElementById("a_category").value,
+          bank_details: document.getElementById("a_bank").value,
+          phone: document.getElementById("a_phone").value,
+          email: document.getElementById("a_email").value,
+          notes: document.getElementById("a_notes").value,
+        }),
       });
-      if (res.ok) { loadFullTable(); loadDashboard(); } else alert("שגיאה בשמירה");
-    }
+      if (res.ok) { msg.className = "msg ok"; msg.textContent = "נשמר!"; e.target.reset(); loadDashboard(); }
+      else { msg.className = "msg err"; msg.textContent = "שגיאה: " + (await res.json()).error; }
+    });
 
-    async function deleteRow(id) {
-      if (!confirm("למחוק את הרשומה? הפעולה בלתי הפיכה.")) return;
-      const res = await fetch(`${API_BASE}/api/receipts/${id}`, { method: "DELETE" });
-      if (res.ok) { loadFullTable(); loadDashboard(); } else alert("שגיאה במחיקה");
+    // ===== מצב ב: העלה קבלה להוצאה קיימת =====
+    async function searchExisting() {
+      const amount = document.getElementById("b_amount").value;
+      const supplier = document.getElementById("b_supplier").value.trim();
+      const res = await fetch(`${API_BASE}/api/receipts?status=no_receipt`);
+      let rows = await res.json();
+      if (amount) rows = rows.filter(r => Math.abs(r.amount - parseFloat(amount)) < 1);
+      if (supplier) rows = rows.filter(r => (r.supplier_name||"").includes(supplier));
+      const div = document.getElementById("b_results");
+      if (rows.length === 0) { div.innerHTML = "<p>לא נמצאו הוצאות תואמות</p>"; return; }
+      div.innerHTML = rows.map(r => `
+        <div class="pick-row">
+          <span>${r.receipt_date||""} - ${r.supplier_name||""} - ₪${(r.amount||0).toLocaleString()}</span>
+          <button class="action" onclick="pickExisting(${r.id})">בחר</button>
+        </div>
+      `).join("");
     }
-
-    async function attachFile(id) {
-      const fileInput = document.getElementById(`ft_file_${id}`);
-      if (!fileInput.files[0]) return;
+    function pickExisting(id) {
+      selectedExistingId = id;
+      document.getElementById("b_selected_id").textContent = id;
+      document.getElementById("b_attach").style.display = "block";
+    }
+    async function attachFile() {
+      const msg = document.getElementById("b_msg");
+      const file = document.getElementById("b_file").files[0];
+      if (!file) { msg.className="msg err"; msg.textContent = "בחר קובץ קודם"; return; }
+      msg.className = "msg"; msg.textContent = "מעלה...";
       const fd = new FormData();
-      fd.append("file", fileInput.files[0]);
-      const res = await fetch(`${API_BASE}/api/receipts/${id}/attach`, { method: "POST", body: fd });
-      if (res.ok) { loadFullTable(); loadDashboard(); } else alert("שגיאה בצירוף קובץ");
+      fd.append("file", file);
+      const res = await fetch(`${API_BASE}/api/receipts/${selectedExistingId}/attach`, { method: "POST", body: fd });
+      if (res.ok) { msg.className = "msg ok"; msg.textContent = "צורף בהצלחה!"; loadDashboard(); }
+      else { msg.className = "msg err"; msg.textContent = "שגיאה"; }
     }
+
+    // ===== מצב ג: הוצאה חדשה עם קבלה =====
+    async function runSmartScan() {
+      const msg = document.getElementById("c_msg");
+      const file = document.getElementById("c_file").files[0];
+      if (!file) { msg.className="msg err"; msg.textContent = "בחר קובץ קודם"; return; }
+      msg.className = "msg"; msg.textContent = "סורק...";
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch(`${API_BASE}/api/ocr-preview`, { method: "POST", body: fd });
+      const data = await res.json();
+      if (data.extracted) {
+        if (data.extracted.date) document.getElementById("c_date").value = data.extracted.date;
+        if (data.extracted.amount) document.getElementById("c_amount").value = data.extracted.amount;
+        if (data.extracted.supplier_name) document.getElementById("c_supplier").value = data.extracted.supplier_name;
+        if (data.extracted.tax_id) document.getElementById("c_taxid").value = data.extracted.tax_id;
+        msg.className = "msg ok"; msg.textContent = "זוהה! אפשר לתקן ידנית ואז לשמור.";
+      } else { msg.className = "msg err"; msg.textContent = "לא זוהה כלום, מלא ידנית"; }
+    }
+
+    document.getElementById("formC").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const msg = document.getElementById("c_msg");
+      msg.className = "msg"; msg.textContent = "מעלה...";
+      const fd = new FormData();
+      fd.append("file", document.getElementById("c_file").files[0]);
+      fd.append("mode", "verify_now");
+      if (document.getElementById("c_date").value) fd.append("date", document.getElementById("c_date").value);
+      fd.append("amount", document.getElementById("c_amount").value);
+      fd.append("supplier_name", document.getElementById("c_supplier").value);
+      if (document.getElementById("c_taxid").value) fd.append("tax_id", document.getElementById("c_taxid").value);
+      if (document.getElementById("c_category").value) fd.append("category", document.getElementById("c_category").value);
+      if (document.getElementById("c_bank").value) fd.append("bank_details", document.getElementById("c_bank").value);
+      if (document.getElementById("c_phone").value) fd.append("phone", document.getElementById("c_phone").value);
+      if (document.getElementById("c_email").value) fd.append("email", document.getElementById("c_email").value);
+      if (document.getElementById("c_notes").value) fd.append("notes", document.getElementById("c_notes").value);
+      try {
+        const res = await fetch(`${API_BASE}/api/receipts/upload`, { method: "POST", body: fd });
+        if (!res.ok) throw new Error((await res.json()).error || "שגיאה");
+        msg.className = "msg ok"; msg.textContent = "נשמר בהצלחה!";
+        e.target.reset();
+        loadDashboard();
+      } catch (err) {
+        msg.className = "msg err"; msg.textContent = "שגיאה: " + err.message;
+      }
+    });
+
+    // ===== ספקים =====
+    document.getElementById("supplierForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const msg = document.getElementById("s_msg");
+      const res = await fetch(`${API_BASE}/api/suppliers`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: document.getElementById("s_name").value,
+          tax_id: document.getElementById("s_taxid").value,
+          phone: document.getElementById("s_phone").value,
+          bank_account: document.getElementById("s_account").value,
+        }),
+      });
+      if (res.ok) { msg.className = "msg ok"; msg.textContent = "נשמר!"; e.target.reset(); loadTab("suppliers"); }
+      else { msg.className = "msg err"; msg.textContent = "שגיאה בשמירה"; }
+    });
 
     async function approveReceipt(id) {
       const date = document.getElementById(`uv_date_${id}`).value;
@@ -435,82 +391,8 @@
       else alert("שגיאה באישור הקבלה - בדוק שכל השדות מלאים");
     }
 
-    document.getElementById("u_noreceipt").addEventListener("change", (e) => {
-      const checked = e.target.checked;
-      document.getElementById("u_file_row").style.display = checked ? "none" : "";
-      document.getElementById("u_mode_row").style.display = checked ? "none" : "";
-      document.getElementById("u_file").required = !checked;
-    });
-
-    document.getElementById("uploadForm").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const msg = document.getElementById("u_msg");
-      const noReceipt = document.getElementById("u_noreceipt").checked;
-
-      if (noReceipt) {
-        const date = document.getElementById("u_date").value;
-        const amount = document.getElementById("u_amount").value;
-        const supplier_name = document.getElementById("u_supplier").value;
-        const tax_id = document.getElementById("u_taxid").value;
-        if (!date || !amount || !supplier_name) {
-          msg.className = "msg err"; msg.textContent = "תאריך, סכום ושם ספק הם שדות חובה";
-          return;
-        }
-        msg.className = "msg"; msg.textContent = "שומר הוצאה...";
-        try {
-          const res = await fetch(`${API_BASE}/api/receipts/manual`, {
-            method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ date, amount: parseFloat(amount), supplier_name, tax_id }),
-          });
-          if (!res.ok) throw new Error((await res.json()).error || "שגיאה");
-          msg.className = "msg ok"; msg.textContent = "נשמר! אפשר לצרף קבלה בהמשך מתוך \"טבלה מלאה\".";
-          e.target.reset();
-          document.getElementById("u_noreceipt").dispatchEvent(new Event("change"));
-          loadDashboard();
-        } catch (err) {
-          msg.className = "msg err"; msg.textContent = "שגיאה: " + err.message;
-        }
-        return;
-      }
-
-      msg.className = "msg"; msg.textContent = "מעלה ומריץ OCR...";
-      const fd = new FormData();
-      fd.append("file", document.getElementById("u_file").files[0]);
-      fd.append("mode", document.getElementById("u_mode").value);
-      if (document.getElementById("u_date").value) fd.append("date", document.getElementById("u_date").value);
-      if (document.getElementById("u_amount").value) fd.append("amount", document.getElementById("u_amount").value);
-      if (document.getElementById("u_supplier").value) fd.append("supplier_name", document.getElementById("u_supplier").value);
-      if (document.getElementById("u_taxid").value) fd.append("tax_id", document.getElementById("u_taxid").value);
-      try {
-        const res = await fetch(`${API_BASE}/api/receipts/upload`, { method: "POST", body: fd });
-        if (!res.ok) throw new Error((await res.json()).error || "שגיאה");
-        msg.className = "msg ok"; msg.textContent = "הועלה בהצלחה!";
-        e.target.reset();
-        loadDashboard();
-      } catch (err) {
-        msg.className = "msg err"; msg.textContent = "שגיאה: " + err.message;
-      }
-    });
-
-    document.getElementById("supplierForm").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const msg = document.getElementById("s_msg");
-      const res = await fetch(`${API_BASE}/api/suppliers`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: document.getElementById("s_name").value,
-          tax_id: document.getElementById("s_taxid").value,
-          phone: document.getElementById("s_phone").value,
-          bank_account: document.getElementById("s_account").value,
-          branch_number: document.getElementById("s_branch").value,
-          bank_code: document.getElementById("s_bank").value,
-        }),
-      });
-      if (res.ok) { msg.className = "msg ok"; msg.textContent = "נשמר!"; e.target.reset(); loadTab("suppliers"); }
-      else { msg.className = "msg err"; msg.textContent = "שגיאה בשמירה"; }
-    });
-
-    document.getElementById("exportBtn").addEventListener("click", async () => {
+    // ===== ייצוא =====
+    document.getElementById("exportXlsxBtn").addEventListener("click", async () => {
       const msg = document.getElementById("export_msg");
       msg.className = "msg"; msg.textContent = "מייצא...";
       try {
@@ -523,14 +405,38 @@
         a.click();
         msg.className = "msg ok"; msg.textContent = "יוצא בהצלחה!";
         loadTab("unpaid"); loadDashboard();
-      } catch (err) {
-        msg.className = "msg err"; msg.textContent = "שגיאה: " + err.message;
-      }
+      } catch (err) { msg.className = "msg err"; msg.textContent = "שגיאה: " + err.message; }
     });
 
-    monthInput.addEventListener("change", () => { loadDashboard(); });
+    document.getElementById("exportDocBtn").addEventListener("click", async () => {
+      const msg = document.getElementById("export_msg");
+      msg.className = "msg"; msg.textContent = "יוצר מסמך בדרייב...";
+      try {
+        const res = await fetch(`${API_BASE}/api/export?format=doc`, { method: "POST" });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "שגיאה");
+        msg.className = "msg ok";
+        msg.innerHTML = `נוצר בהצלחה! <a class="file-link" href="${data.doc_link}" target="_blank">פתח מסמך</a>`;
+        loadTab("unpaid"); loadDashboard();
+      } catch (err) { msg.className = "msg err"; msg.textContent = "שגיאה: " + err.message; }
+    });
+
+    document.getElementById("syncDriveBtn").addEventListener("click", async () => {
+      const msg = document.getElementById("sync_msg");
+      msg.className = "msg"; msg.textContent = "סורק את הדרייב...";
+      try {
+        const res = await fetch(`${API_BASE}/api/sync-drive`, { method: "POST" });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "שגיאה");
+        msg.className = "msg ok"; msg.textContent = `נסרקו ${data.scanned} קבצים, נוספו ${data.added} חדשים`;
+        loadTab("unverified"); loadDashboard();
+      } catch (err) { msg.className = "msg err"; msg.textContent = "שגיאה: " + err.message; }
+    });
+
+    monthInput.addEventListener("change", () => loadDashboard());
     loadDashboard();
     showTab("upload");
+    showMode("a");
   </script>
 </body>
 </html>
