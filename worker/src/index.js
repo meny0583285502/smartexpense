@@ -47,6 +47,28 @@ async function findOrCreateSupplier(env, name, extra = {}) {
   return result.meta.last_row_id;
 }
 
+async function getUser(env, userId) {
+  if (!userId) throw new Error("חסר מזהה משתמש - יש להתחבר מחדש");
+  const user = await env.DB.prepare(`SELECT * FROM users WHERE id = ?`).bind(userId).first();
+  if (!user) throw new Error("משתמש לא נמצא");
+  return user;
+}
+
+// מבנה: <משתמש>/קבלות שלא אומתו, <משתמש>/בקשות להחזר, <משתמש>/הוצאות וחשבונות/<חודש>/יצא-לא יצא החזר
+async function getUserFolders(env, user) {
+  const unverified = await ensureFolder(env, "קבלות שלא אומתו", user.drive_folder_id);
+  const requests = await ensureFolder(env, "בקשות להחזר", user.drive_folder_id);
+  const expensesRoot = await ensureFolder(env, "הוצאות וחשבונות", user.drive_folder_id);
+  return { unverified, requests, expensesRoot };
+}
+
+async function getMonthFolders(env, expensesRootId, monthKey) {
+  const monthFolder = await ensureFolder(env, monthFolderName(monthKey), expensesRootId);
+  const paid = await ensureFolder(env, "יצא החזר", monthFolder);
+  const unpaid = await ensureFolder(env, "לא יצא החזר", monthFolder);
+  return { paid, unpaid };
+}
+
 export default {
   async scheduled(event, env, ctx) {
     await syncUnverifiedFolder(env);
@@ -63,36 +85,40 @@ export default {
       // ---------- דשבורד ----------
       if (path === "/api/dashboard" && method === "GET") {
         const month = url.searchParams.get("month") || new Date().toISOString().slice(0, 7);
+        const userId = url.searchParams.get("user_id");
+        if (!userId) return json({ error: "חסר user_id" }, 400);
 
         const monthTotal = await env.DB.prepare(
           `SELECT COALESCE(SUM(amount),0) AS total, COUNT(*) AS count FROM receipts
-           WHERE substr(receipt_date,1,7) = ? AND status != 'unverified'`
-        ).bind(month).first();
+           WHERE substr(receipt_date,1,7) = ? AND status != 'unverified' AND user_id = ?`
+        ).bind(month, userId).first();
 
         const unverified = await env.DB.prepare(
-          `SELECT COUNT(*) AS count FROM receipts WHERE status = 'unverified'`
-        ).first();
+          `SELECT COUNT(*) AS count FROM receipts WHERE status = 'unverified' AND user_id = ?`
+        ).bind(userId).first();
 
         const unpaidAllTime = await env.DB.prepare(
-          `SELECT COALESCE(SUM(amount),0) AS total, COUNT(*) AS count FROM receipts WHERE status IN ('unpaid','no_receipt')`
-        ).first();
+          `SELECT COALESCE(SUM(amount),0) AS total, COUNT(*) AS count FROM receipts WHERE status IN ('unpaid','no_receipt') AND user_id = ?`
+        ).bind(userId).first();
 
         const paidThisMonth = await env.DB.prepare(
           `SELECT COALESCE(SUM(r.amount),0) AS total, COUNT(*) AS count FROM receipts r
            JOIN payment_cycles c ON c.id = r.paid_cycle_id
-           WHERE c.month_key = ?`
-        ).bind(month).first();
+           WHERE c.month_key = ? AND r.user_id = ?`
+        ).bind(month, userId).first();
 
         return json({ month, month_total: monthTotal, unverified_count: unverified.count, unpaid: unpaidAllTime, paid_this_month: paidThisMonth });
       }
 
-      // ---------- רשימת קבלות (סינון לפי status ו/או month) ----------
+      // ---------- רשימת קבלות (סינון לפי status ו/או month, תמיד לפי משתמש) ----------
       if (path === "/api/receipts" && method === "GET") {
         const status = url.searchParams.get("status");
         const month = url.searchParams.get("month");
+        const userId = url.searchParams.get("user_id");
+        if (!userId) return json({ error: "חסר user_id" }, 400);
         let query = `SELECT r.*, s.name AS supplier_name FROM receipts r
-                      LEFT JOIN suppliers s ON s.id = r.supplier_id WHERE 1=1`;
-        const binds = [];
+                      LEFT JOIN suppliers s ON s.id = r.supplier_id WHERE r.user_id = ?`;
+        const binds = [userId];
         if (status) { query += ` AND r.status = ?`; binds.push(status); }
         if (month) { query += ` AND substr(r.receipt_date,1,7) = ?`; binds.push(month); }
         query += ` ORDER BY r.receipt_date DESC`;
@@ -115,7 +141,10 @@ export default {
         const form = await request.formData();
         const file = form.get("file");
         const mode = form.get("mode") || "verify_later"; // verify_now | verify_later
+        const userId = form.get("user_id");
         if (!file) return json({ error: "לא נשלח קובץ" }, 400);
+        const user = await getUser(env, userId);
+        const folders = await getUserFolders(env, user);
 
         const bytes = await file.arrayBuffer();
         const { extracted } = await runOCR(env, bytes);
@@ -136,11 +165,11 @@ export default {
         let status;
         if (mode === "verify_now" && date) {
           const monthKey = date.slice(0, 7);
-          const monthFolder = await ensureFolder(env, monthFolderName(monthKey), env.ROOT_FOLDER_ID);
-          targetFolderId = await ensureFolder(env, "קבלות שלא יצאו", monthFolder);
+          const { unpaid } = await getMonthFolders(env, folders.expensesRoot, monthKey);
+          targetFolderId = unpaid;
           status = "unpaid";
         } else {
-          targetFolderId = await ensureFolder(env, "קבלות שלא אומתו", env.ROOT_FOLDER_ID);
+          targetFolderId = folders.unverified;
           status = "unverified";
         }
 
@@ -152,12 +181,12 @@ export default {
         });
 
         const result = await env.DB.prepare(
-          `INSERT INTO receipts (drive_file_id, drive_file_link, supplier_id, amount, tax_id, receipt_date, status, source, approved_at, category, notes, bank_details)
-           VALUES (?, ?, ?, ?, ?, ?, ?, 'web_upload', ?, ?, ?, ?)`
+          `INSERT INTO receipts (drive_file_id, drive_file_link, supplier_id, amount, tax_id, receipt_date, status, source, approved_at, category, notes, bank_details, user_id)
+           VALUES (?, ?, ?, ?, ?, ?, ?, 'web_upload', ?, ?, ?, ?, ?)`
         ).bind(
           uploaded.id, uploaded.webViewLink, supplierId, amount || null, taxId || null,
           date || null, status, status === "unpaid" ? new Date().toISOString() : null,
-          category, notes, bankDetails
+          category, notes, bankDetails, userId
         ).run();
 
         return json({ id: result.meta.last_row_id, status, extracted }, 201);
@@ -166,15 +195,16 @@ export default {
       // ---------- הוצאה ללא קבלה (הקבלה עוד לא התקבלה) ----------
       if (path === "/api/receipts/manual" && method === "POST") {
         const body = await request.json();
-        const { date, amount, supplier_name, tax_id, category, notes, bank_details, phone, email } = body;
+        const { date, amount, supplier_name, tax_id, category, notes, bank_details, phone, email, user_id } = body;
         if (!amount || !supplier_name) {
           return json({ error: "סכום ושם ספק הם שדות חובה" }, 400);
         }
+        if (!user_id) return json({ error: "חסר user_id" }, 400);
         const supplierId = await findOrCreateSupplier(env, supplier_name, { tax_id, phone, email, bank_account: bank_details });
         const result = await env.DB.prepare(
-          `INSERT INTO receipts (supplier_id, amount, tax_id, receipt_date, status, source, category, notes, bank_details)
-           VALUES (?, ?, ?, ?, 'no_receipt', 'manual', ?, ?, ?)`
-        ).bind(supplierId, amount, tax_id || null, date || todayStr(), category || null, notes || null, bank_details || null).run();
+          `INSERT INTO receipts (supplier_id, amount, tax_id, receipt_date, status, source, category, notes, bank_details, user_id)
+           VALUES (?, ?, ?, ?, 'no_receipt', 'manual', ?, ?, ?, ?)`
+        ).bind(supplierId, amount, tax_id || null, date || todayStr(), category || null, notes || null, bank_details || null, user_id).run();
         return json({ id: result.meta.last_row_id, status: "no_receipt" }, 201);
       }
 
@@ -188,15 +218,17 @@ export default {
         const file = form.get("file");
         if (!file) return json({ error: "לא נשלח קובץ" }, 400);
         const bytes = await file.arrayBuffer();
+        const user = await getUser(env, receipt.user_id);
+        const folders = await getUserFolders(env, user);
 
         const ready = Boolean(receipt.receipt_date && receipt.amount && receipt.supplier_id && receipt.tax_id);
         let targetFolderId;
         if (ready) {
           const monthKey = receipt.receipt_date.slice(0, 7);
-          const monthFolder = await ensureFolder(env, monthFolderName(monthKey), env.ROOT_FOLDER_ID);
-          targetFolderId = await ensureFolder(env, "קבלות שלא יצאו", monthFolder);
+          const { unpaid } = await getMonthFolders(env, folders.expensesRoot, monthKey);
+          targetFolderId = unpaid;
         } else {
-          targetFolderId = await ensureFolder(env, "קבלות שלא אומתו", env.ROOT_FOLDER_ID);
+          targetFolderId = folders.unverified;
         }
 
         const uploaded = await uploadFile(env, {
@@ -270,10 +302,11 @@ export default {
         if (!receipt) return json({ error: "קבלה לא נמצאה" }, 404);
 
         const supplierId = await findOrCreateSupplier(env, supplier_name, { tax_id });
+        const user = await getUser(env, receipt.user_id);
+        const folders = await getUserFolders(env, user);
 
         const monthKey = date.slice(0, 7);
-        const monthFolder = await ensureFolder(env, monthFolderName(monthKey), env.ROOT_FOLDER_ID);
-        const targetFolderId = await ensureFolder(env, "קבלות שלא יצאו", monthFolder);
+        const { unpaid: targetFolderId } = await getMonthFolders(env, folders.expensesRoot, monthKey);
         if (receipt.drive_file_id) {
           await moveFile(env, receipt.drive_file_id, targetFolderId);
         }
@@ -346,23 +379,27 @@ export default {
       // ---------- ייצוא: מעביר את כל "לא יצאו" ל"יצאו" של החודש הנוכחי ----------
       if (path === "/api/export" && method === "POST") {
         const format = url.searchParams.get("format") || "xlsx";
+        const userId = url.searchParams.get("user_id");
+        if (!userId) return json({ error: "חסר user_id" }, 400);
+        const user = await getUser(env, userId);
+        const folders = await getUserFolders(env, user);
+
         const { results: unpaid } = await env.DB.prepare(
           `SELECT r.*, s.name AS supplier_name FROM receipts r
-           LEFT JOIN suppliers s ON s.id = r.supplier_id WHERE r.status IN ('unpaid','no_receipt')`
-        ).all();
+           LEFT JOIN suppliers s ON s.id = r.supplier_id WHERE r.status IN ('unpaid','no_receipt') AND r.user_id = ?`
+        ).bind(userId).all();
 
         if (unpaid.length === 0) return json({ error: "אין הוצאות שלא יצאו להחזר" }, 400);
 
         const monthKey = new Date().toISOString().slice(0, 7);
-        const monthFolder = await ensureFolder(env, monthFolderName(monthKey), env.ROOT_FOLDER_ID);
-        const paidFolderId = await ensureFolder(env, "קבלות שיצאו להחזר", monthFolder);
+        const { paid: paidFolderId } = await getMonthFolders(env, folders.expensesRoot, monthKey);
 
         const total = unpaid.reduce((sum, r) => sum + (r.amount || 0), 0);
         let docLink = null;
 
         if (format === "doc") {
           const monthLabel = `${HEBREW_MONTHS[new Date().getMonth()]} ${new Date().getFullYear()}`;
-          const doc = await createPaymentRequestDoc(env, unpaid, "ישיבת ארחות יושר", monthLabel);
+          const doc = await createPaymentRequestDoc(env, unpaid, user.username, monthLabel, folders.requests);
           docLink = doc.link;
         }
 

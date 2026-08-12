@@ -1,6 +1,6 @@
 // docs.js
 import { getUserAccessToken } from "./user-auth.js";
-import { ensureFolder, moveFile } from "./drive.js";
+import { moveFile } from "./drive.js";
 
 async function docsFetch(env, path, options = {}) {
   const token = await getUserAccessToken(env);
@@ -13,27 +13,26 @@ async function docsFetch(env, path, options = {}) {
 }
 
 // rows: [{ bank_details, tax_id, supplier_name, amount, category, notes }]
-export async function createPaymentRequestDoc(env, rows, requesterName = "") {
+export async function createPaymentRequestDoc(env, rows, requesterName = "", monthLabel = "", targetFolderId) {
   const today = new Date().toLocaleDateString("he-IL");
   const created = await docsFetch(env, "/documents", {
     method: "POST",
-    body: JSON.stringify({ title: `בקשת תשלומים - ${today}` }),
+    body: JSON.stringify({ title: `בקשה ${monthLabel || today}` }),
   });
   const docId = created.documentId;
 
-  // בונים טבלה: שורת כותרות + שורה לכל הוצאה
-  const headers = ["פרטי חשבון בנק", "מספר עוסק", "שם ספק", "סכום", "סעיף תקציבי", "הערות"];
+  // סדר עמודות זהה בדיוק לטופס המקורי: הערות | פרטי חשבון בנק | מספר עוסק | שם ספק | סכום | סעיף תקציב | אישור אגף הכספים
+  const headers = ["הערות", "פרטי חשבון בנק", "מספר עוסק", "שם ספק", "סכום", "סעיף תקציב", "אישור אגף הכספים"];
   const tableRows = [headers, ...rows.map(r => [
-    r.bank_details || "", r.tax_id || "", r.supplier_name || "",
-    `₪${(r.amount || 0).toLocaleString()}`, r.category || "", r.notes || "",
+    r.notes || "", r.bank_details || "", r.tax_id || "", r.supplier_name || "",
+    `₪${(r.amount || 0).toLocaleString()}`, r.category || "", "",
   ])];
 
-  // מוסיפים כותרת + טבלה במסמך (Docs API: קודם טקסט, אז טבלה בסוף המסמך)
   await docsFetch(env, `/documents/${docId}:batchUpdate`, {
     method: "POST",
     body: JSON.stringify({
       requests: [
-        { insertText: { location: { index: 1 }, text: `טופס בקשת תשלומים\nתאריך: ${today}\nהמוסד המזמין: ${requesterName}\n\n` } },
+        { insertText: { location: { index: 1 }, text: `תאריך: ${today}    חודש בקשת תשלום: ${monthLabel}\nהמוסד המזמין: ${requesterName}\n\n` } },
       ],
     }),
   });
@@ -74,9 +73,8 @@ export async function createPaymentRequestDoc(env, rows, requesterName = "") {
     }
   }
 
-  // מעבירים את המסמך לתיקיית "בקשות ארחות יושר"
-  const targetFolder = await ensureFolder(env, "בקשות ארחות יושר", env.ROOT_FOLDER_ID);
-  await moveFile(env, docId, targetFolder);
+  // מעבירים את המסמך לתיקיית היעד שנשלחה
+  if (targetFolderId) await moveFile(env, docId, targetFolderId);
 
   return { docId, link: `https://docs.google.com/document/d/${docId}/edit` };
 }
