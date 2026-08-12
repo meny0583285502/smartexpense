@@ -75,7 +75,10 @@
   </div>
 
   <div id="app" style="display:none;">
-  <h1>🧾 קבלות חכמות <span class="institution-name" id="institutionName"></span></h1>
+  <h1>🧾 קבלות חכמות <span class="institution-name" id="institutionName"></span>
+    <button class="action secondary" style="font-size:12px;padding:4px 10px;margin-right:12px;" onclick="switchUser()">החלף משתמש</button>
+    <button class="action secondary" style="font-size:12px;padding:4px 10px;background:#c0392b;" onclick="logout()">התנתק</button>
+  </h1>
   <input type="month" id="month">
 
   <div class="cards">
@@ -104,6 +107,17 @@
     <button data-tab="paid" onclick="showTab('paid')">יצאו להחזר</button>
     <button data-tab="unverified" onclick="showTab('unverified')">לא אומתו</button>
     <button data-tab="suppliers" onclick="showTab('suppliers')">ספקים</button>
+    <button data-tab="settings" onclick="showTab('settings')">⚙ הגדרות</button>
+  </div>
+
+  <div id="panel-settings" class="panel hidden">
+    <h2>הגדרות משתמש</h2>
+    <form id="settingsForm">
+      <label>כתובת מייל לקבלת התראה בכל ייצוא לדוקס:</label>
+      <input type="email" id="set_email" placeholder="example@gmail.com">
+      <button class="action" type="submit">שמור</button>
+      <div class="msg" id="settings_msg"></div>
+    </form>
   </div>
 
   <!-- ===== פאנל הזנת הוצאה - 3 מצבים ===== -->
@@ -257,6 +271,7 @@
       const data = await res.json();
       if (!res.ok) { msg.className = "msg err"; msg.textContent = data.error; return; }
       currentUser = data;
+      localStorage.setItem("smartexpense_user", JSON.stringify(data));
       document.getElementById("institutionName").textContent = "- " + data.username;
       document.getElementById("loginScreen").style.display = "none";
       document.getElementById("loginPrompt").style.display = "none";
@@ -283,6 +298,32 @@
       loadUserList();
     });
     loadUserList();
+
+    function logout() {
+      localStorage.removeItem("smartexpense_user");
+      currentUser = null;
+      document.getElementById("app").style.display = "none";
+      document.getElementById("loginScreen").style.display = "block";
+      loadUserList();
+    }
+    function switchUser() {
+      logout();
+    }
+
+    function tryAutoLogin() {
+      const saved = localStorage.getItem("smartexpense_user");
+      if (saved) {
+        currentUser = JSON.parse(saved);
+        document.getElementById("institutionName").textContent = "- " + currentUser.username;
+        document.getElementById("loginScreen").style.display = "none";
+        document.getElementById("app").style.display = "block";
+        loadDashboard();
+        showTab("upload");
+        showMode("c");
+        return true;
+      }
+      return false;
+    }
 
     const monthInput = document.getElementById("month");
     monthInput.value = new Date().toISOString().slice(0,7);
@@ -387,6 +428,9 @@
           <tr><td>${s.name}</td><td>${s.tax_id||""}</td><td>${s.phone||""}</td>
           <td>₪${(s.total_spent||0).toLocaleString()}</td><td>₪${(s.total_paid||0).toLocaleString()}</td></tr>
         `).join("");
+      }
+      if (name === "settings") {
+        document.getElementById("set_email").value = currentUser.email || "";
       }
     }
 
@@ -586,7 +630,23 @@
       card.textContent = data.unverified_count;
     }, 60000);
 
+    document.getElementById("settingsForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const msg = document.getElementById("settings_msg");
+      const email = document.getElementById("set_email").value;
+      const res = await fetch(`${API_BASE}/api/users/${currentUser.id}/settings`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      if (res.ok) {
+        currentUser.email = email;
+        localStorage.setItem("smartexpense_user", JSON.stringify(currentUser));
+        msg.className = "msg ok"; msg.textContent = "נשמר!";
+      } else { msg.className = "msg err"; msg.textContent = "שגיאה בשמירה"; }
+    });
+
     monthInput.addEventListener("change", () => loadDashboard());
+    tryAutoLogin();
   </script>  </div>
 
 </body>
