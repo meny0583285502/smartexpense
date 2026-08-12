@@ -77,7 +77,7 @@
     </div>
   </div>
 
-  <button id="hamburgerBtn" onclick="toggleSidebar()" style="position:fixed;top:18px;right:18px;z-index:150;background:#b8860b;color:#fff;border:none;border-radius:10px;width:44px;height:44px;font-size:20px;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.15);">☰</button>
+  <button id="hamburgerBtn" onclick="toggleSidebar()" style="display:none;position:fixed;top:18px;right:18px;z-index:150;background:#b8860b;color:#fff;border:none;border-radius:10px;width:44px;height:44px;font-size:20px;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.15);">☰</button>
 
   <div id="sidebarOverlay" onclick="toggleSidebar()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:160;"></div>
   <div id="sidebar" style="display:none;position:fixed;top:0;right:0;width:280px;height:100%;background:#fff;z-index:170;box-shadow:-4px 0 20px rgba(0,0,0,.15);padding:24px;box-sizing:border-box;">
@@ -332,6 +332,7 @@
       document.getElementById("loginScreen").style.display = "none";
       document.getElementById("loginPrompt").style.display = "none";
       document.getElementById("app").style.display = "block";
+      document.getElementById("hamburgerBtn").style.display = "block";
       loadDashboard();
       showTab("upload");
       showMode("c");
@@ -361,6 +362,7 @@
       localStorage.removeItem("smartexpense_user");
       currentUser = null;
       document.getElementById("app").style.display = "none";
+      document.getElementById("hamburgerBtn").style.display = "none";
       document.getElementById("loginScreen").style.display = "block";
       document.getElementById("sidebar").style.display = "none";
       document.getElementById("sidebarOverlay").style.display = "none";
@@ -377,6 +379,7 @@
         document.getElementById("institutionName").textContent = "- " + currentUser.username;
         document.getElementById("loginScreen").style.display = "none";
         document.getElementById("app").style.display = "block";
+      document.getElementById("hamburgerBtn").style.display = "block";
         loadDashboard();
         showTab("upload");
         showMode("c");
@@ -448,10 +451,71 @@
     function cacheRows(rows) { rows.forEach(r => receiptsCache[r.id] = r); }
 
     function rowActions(id) {
-      return `
-        <button class="action secondary" style="padding:4px 8px;font-size:12px;" onclick="openEditModal(${id})">✏️</button>
-        <button class="action secondary" style="padding:4px 8px;font-size:12px;background:#c0392b;" onclick="deleteReceipt(${id})">🗑️</button>
-      `;
+      return `<button class="action secondary" style="padding:4px 8px;font-size:12px;background:#c0392b;" onclick="deleteReceipt(${id})">🗑️</button>`;
+    }
+
+    // תא טקסט/מספר שניתן לערוך ישירות בלחיצה, שומר אוטומטית כשיוצאים ממנו (blur)
+    function supplierCell(id, field, value) {
+      return `<td contenteditable="true" data-id="${id}" data-field="${field}"
+                onblur="saveSupplierField(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}"
+                style="cursor:text;">${value ?? ""}</td>`;
+    }
+    async function saveSupplierField(el) {
+      const id = el.dataset.id;
+      const field = el.dataset.field;
+      const value = el.textContent.trim();
+      await fetch(`${API_BASE}/api/suppliers/${id}`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ [field]: value }),
+      });
+    }
+
+    function editableCell(id, field, value, type = "text") {
+      return `<td contenteditable="true" data-id="${id}" data-field="${field}" data-type="${type}"
+                onblur="saveInlineEdit(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}"
+                style="cursor:text;min-width:60px;">${value ?? ""}</td>`;
+    }
+
+    // תא קטגוריה - תפריט נפתח קטן שנשמר מיד עם שינוי, כולל אפשרות "הוסף חדש"
+    function categoryCell(id, value) {
+      const cats = (currentUser.categories || "").split(",").filter(Boolean);
+      const options = [`<option value="">-- ללא --</option>`,
+        ...cats.map(c => `<option value="${c}" ${c === value ? "selected" : ""}>${c}</option>`),
+        `<option value="__new__">+ הוסף קטגוריה חדשה</option>`].join("");
+      return `<td><select onchange="onCategoryCellChange(this, ${id})" style="font-size:12px;padding:4px;">${options}</select></td>`;
+    }
+    async function onCategoryCellChange(sel, id) {
+      if (sel.value === "__new__") {
+        const newCat = prompt("שם הסעיף החדש:");
+        if (!newCat) { sel.value = ""; return; }
+        const cats = (currentUser.categories || "").split(",").filter(Boolean);
+        cats.push(newCat.trim());
+        currentUser.categories = cats.join(",");
+        await fetch(`${API_BASE}/api/users/${currentUser.id}/settings`, {
+          method: "PATCH", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ categories: currentUser.categories }),
+        });
+        localStorage.setItem("smartexpense_user", JSON.stringify(currentUser));
+        await saveInlineField(id, "category", newCat.trim());
+        const activeTab = document.querySelector(".tabs button.active");
+        if (activeTab) loadTab(activeTab.dataset.tab);
+      } else {
+        await saveInlineField(id, "category", sel.value);
+      }
+    }
+
+    async function saveInlineField(id, field, value) {
+      await fetch(`${API_BASE}/api/receipts/${id}`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ [field]: value }),
+      });
+      loadDashboard();
+    }
+    function saveInlineEdit(el) {
+      const id = el.dataset.id;
+      const field = el.dataset.field;
+      let value = el.textContent.trim();
+      saveInlineField(id, field, value);
     }
 
     function openEditModal(id) {
@@ -554,8 +618,8 @@
         const rows = await res.json();
         cacheRows(rows);
         document.querySelector("#t_expenses tbody").innerHTML = rows.map(r => `
-          <tr><td>${r.receipt_date||""}</td><td>${r.supplier_name||""}</td><td>${r.tax_id||""}</td><td>₪${(r.amount||0).toLocaleString()}</td>
-          <td>${r.category||""}</td><td>${r.bank_details||""}</td><td>${r.notes||""}</td>
+          <tr>${editableCell(r.id,"receipt_date",r.receipt_date,"date")}${editableCell(r.id,"supplier_name",r.supplier_name)}${editableCell(r.id,"tax_id",r.tax_id)}${editableCell(r.id,"amount",r.amount,"number")}
+          ${categoryCell(r.id, r.category)}${editableCell(r.id,"bank_details",r.bank_details)}${editableCell(r.id,"notes",r.notes)}
           <td>${r.status}</td><td>${receiptCell(r)}</td><td>${rowActions(r.id)}</td></tr>
         `).join("");
       }
@@ -565,8 +629,8 @@
         const rows = [...(await res1.json()), ...(await res2.json())];
         cacheRows(rows);
         document.querySelector("#t_unpaid tbody").innerHTML = rows.map(r => `
-          <tr><td>${r.receipt_date||""}</td><td>${r.supplier_name||""}</td><td>${r.tax_id||""}</td><td>₪${(r.amount||0).toLocaleString()}</td>
-          <td>${r.category||""}</td><td>${r.bank_details||""}</td><td>${r.notes||""}</td>
+          <tr>${editableCell(r.id,"receipt_date",r.receipt_date,"date")}${editableCell(r.id,"supplier_name",r.supplier_name)}${editableCell(r.id,"tax_id",r.tax_id)}${editableCell(r.id,"amount",r.amount,"number")}
+          ${categoryCell(r.id, r.category)}${editableCell(r.id,"bank_details",r.bank_details)}${editableCell(r.id,"notes",r.notes)}
           <td>${receiptCell(r)}</td><td>${rowActions(r.id)}</td></tr>
         `).join("");
       }
@@ -575,7 +639,7 @@
         const rows = await res.json();
         cacheRows(rows);
         document.querySelector("#t_paid tbody").innerHTML = rows.map(r => `
-          <tr><td>${r.receipt_date||""}</td><td>${r.supplier_name||""}</td><td>₪${(r.amount||0).toLocaleString()}</td>
+          <tr>${editableCell(r.id,"receipt_date",r.receipt_date,"date")}${editableCell(r.id,"supplier_name",r.supplier_name)}${editableCell(r.id,"amount",r.amount,"number")}
           <td>${r.drive_file_link ? `<a class="file-link" href="${r.drive_file_link}" target="_blank">צפה</a>` : ""}</td><td>${rowActions(r.id)}</td></tr>
         `).join("");
       }
@@ -598,7 +662,7 @@
         const res = await fetch(`${API_BASE}/api/suppliers`);
         const rows = await res.json();
         document.querySelector("#t_suppliers tbody").innerHTML = rows.map(s => `
-          <tr><td>${s.name}</td><td>${s.tax_id||""}</td><td>${s.phone||""}</td>
+          <tr>${supplierCell(s.id,"name",s.name)}${supplierCell(s.id,"tax_id",s.tax_id)}${supplierCell(s.id,"phone",s.phone)}
           <td>₪${(s.total_spent||0).toLocaleString()}</td><td>₪${(s.total_paid||0).toLocaleString()}</td></tr>
         `).join("");
       }
