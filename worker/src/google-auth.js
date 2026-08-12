@@ -13,9 +13,10 @@ function base64url(input) {
 
 async function importPrivateKey(pem) {
   const clean = pem
-    .replace(/-----BEGIN PRIVATE KEY-----/, "")
-    .replace(/-----END PRIVATE KEY-----/, "")
-    .replace(/\s/g, "");
+    .replace(/-----BEGIN [A-Z ]+-----/, "")
+    .replace(/-----END [A-Z ]+-----/, "")
+    .replace(/\\n/g, "")
+    .replace(/[^A-Za-z0-9+/=]/g, "");
   const binary = atob(clean);
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);

@@ -30,8 +30,8 @@ CREATE TABLE IF NOT EXISTS receipts (
   tax_id TEXT,
   receipt_date TEXT,
   status TEXT NOT NULL DEFAULT 'unverified',
-      -- unverified | unpaid | paid
-  source TEXT,                  -- email | mobile_camera | mobile_gallery | web_upload
+      -- no_receipt | unverified | unpaid | paid
+  source TEXT,                  -- email | mobile_camera | mobile_gallery | web_upload | manual
   paid_cycle_id INTEGER REFERENCES payment_cycles(id),
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   approved_at TEXT

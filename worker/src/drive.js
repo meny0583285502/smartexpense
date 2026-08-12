@@ -79,6 +79,18 @@ export async function moveFile(env, fileId, newParentId) {
   return res.json();
 }
 
+// מעביר קובץ לאשפה בדרייב (מחיקה רכה)
+export async function trashFile(env, fileId) {
+  const token = await getGoogleAccessToken(env);
+  const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}`, {
+    method: "PATCH",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ trashed: true }),
+  });
+  if (!res.ok) throw new Error("Drive trash failed: " + (await res.text()));
+  return res.json();
+}
+
 // מוריד קובץ (לצורך OCR)
 export async function downloadFile(env, fileId) {
   const token = await getGoogleAccessToken(env);

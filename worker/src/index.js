@@ -1,5 +1,5 @@
 // SmartExpense Worker - מערכת ניהול קבלות למוסד
-import { ensureFolder, uploadFile, moveFile, downloadFile } from "./drive.js";
+import { ensureFolder, uploadFile, moveFile, downloadFile, trashFile } from "./drive.js";
 import { runOCR } from "./ocr.js";
 
 const HEBREW_MONTHS = [
@@ -134,6 +134,100 @@ export default {
         ).run();
 
         return json({ id: result.meta.last_row_id, status, extracted }, 201);
+      }
+
+      // ---------- הוצאה ללא קבלה (הקבלה עוד לא התקבלה) ----------
+      if (path === "/api/receipts/manual" && method === "POST") {
+        const body = await request.json();
+        const { date, amount, supplier_name, tax_id } = body;
+        if (!date || !amount || !supplier_name) {
+          return json({ error: "תאריך, סכום ושם ספק הם שדות חובה" }, 400);
+        }
+        const supplierId = await findOrCreateSupplier(env, supplier_name, { tax_id });
+        const result = await env.DB.prepare(
+          `INSERT INTO receipts (supplier_id, amount, tax_id, receipt_date, status, source)
+           VALUES (?, ?, ?, ?, 'no_receipt', 'manual')`
+        ).bind(supplierId, amount, tax_id || null, date).run();
+        return json({ id: result.meta.last_row_id, status: "no_receipt" }, 201);
+      }
+
+      // ---------- צירוף קובץ קבלה מאוחר יותר להוצאה ללא קבלה ----------
+      if (path.match(/^\/api\/receipts\/\d+\/attach$/) && method === "POST") {
+        const id = path.split("/")[3];
+        const receipt = await env.DB.prepare(`SELECT * FROM receipts WHERE id = ?`).bind(id).first();
+        if (!receipt) return json({ error: "קבלה לא נמצאה" }, 404);
+
+        const form = await request.formData();
+        const file = form.get("file");
+        if (!file) return json({ error: "לא נשלח קובץ" }, 400);
+        const bytes = await file.arrayBuffer();
+
+        const ready = Boolean(receipt.receipt_date && receipt.amount && receipt.supplier_id && receipt.tax_id);
+        let targetFolderId;
+        if (ready) {
+          const monthKey = receipt.receipt_date.slice(0, 7);
+          const monthFolder = await ensureFolder(env, monthFolderName(monthKey), env.ROOT_FOLDER_ID);
+          targetFolderId = await ensureFolder(env, "קבלות שלא יצאו", monthFolder);
+        } else {
+          targetFolderId = await ensureFolder(env, "קבלות שלא אומתו", env.ROOT_FOLDER_ID);
+        }
+
+        const uploaded = await uploadFile(env, {
+          name: file.name || `receipt-${Date.now()}`,
+          mimeType: file.type || "application/octet-stream",
+          bytes,
+          parentId: targetFolderId,
+        });
+
+        const newStatus = ready ? "unpaid" : "unverified";
+        await env.DB.prepare(
+          `UPDATE receipts SET drive_file_id = ?, drive_file_link = ?, status = ?,
+             approved_at = CASE WHEN ? = 'unpaid' THEN datetime('now') ELSE approved_at END
+           WHERE id = ?`
+        ).bind(uploaded.id, uploaded.webViewLink, newStatus, newStatus, id).run();
+
+        return json({ ok: true, status: newStatus });
+      }
+
+      // ---------- עריכת קבלה/הוצאה כלשהי (טבלה מלאה) ----------
+      if (path.match(/^\/api\/receipts\/\d+$/) && method === "PATCH") {
+        const id = path.split("/")[3];
+        const receipt = await env.DB.prepare(`SELECT * FROM receipts WHERE id = ?`).bind(id).first();
+        if (!receipt) return json({ error: "קבלה לא נמצאה" }, 404);
+
+        const body = await request.json();
+        const { date, amount, supplier_name, tax_id, status } = body;
+
+        let supplierId = receipt.supplier_id;
+        if (supplier_name) supplierId = await findOrCreateSupplier(env, supplier_name, { tax_id });
+
+        await env.DB.prepare(
+          `UPDATE receipts SET
+             receipt_date = COALESCE(?, receipt_date),
+             amount = COALESCE(?, amount),
+             supplier_id = ?,
+             tax_id = COALESCE(?, tax_id),
+             status = COALESCE(?, status)
+           WHERE id = ?`
+        ).bind(date || null, amount == null || amount === "" ? null : amount, supplierId, tax_id || null, status || null, id).run();
+
+        return json({ ok: true });
+      }
+
+      // ---------- מחיקת קבלה/הוצאה ----------
+      if (path.match(/^\/api\/receipts\/\d+$/) && method === "DELETE") {
+        const id = path.split("/")[3];
+        const receipt = await env.DB.prepare(`SELECT * FROM receipts WHERE id = ?`).bind(id).first();
+        if (!receipt) return json({ error: "קבלה לא נמצאה" }, 404);
+        if (receipt.drive_file_id) {
+          try {
+            await trashFile(env, receipt.drive_file_id);
+          } catch (e) {
+            // ממשיכים למחוק את הרשומה גם אם המחיקה בדרייב נכשלה
+          }
+        }
+        await env.DB.prepare(`DELETE FROM receipts WHERE id = ?`).bind(id).run();
+        return json({ ok: true });
       }
 
       // ---------- אישור קבלה שהייתה "לא אומתה" ----------
