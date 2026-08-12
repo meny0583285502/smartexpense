@@ -8,13 +8,16 @@ compatibility_date = "2026-01-01"
 [[d1_databases]]
 binding = "DB"
 database_name = "smartexpense-db"
-database_id = "0784898e-6460-40b8-90d6-d38ceff6f459"
+database_id = "PLACEHOLDER_UPDATE_ME"
 
 [vars]
-ROOT_FOLDER_ID = "1rfWzSoA7ZaOxA7137UGGURLKgzZwLxCC"
+ROOT_FOLDER_ID = "1I2-BeGkoB_jrHUqPBK8v3ISilJe6qRPJ"
 
 [triggers]
 crons = ["*/15 * * * *"]
+
+[ai]
+binding = "AI"
 
 # כשיהיה מפתח Google Service Account, תריץ:
 #   npx wrangler secret put GOOGLE_SA_EMAIL

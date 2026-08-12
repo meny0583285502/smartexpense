@@ -3,6 +3,7 @@ import { ensureFolder, uploadFile, moveFile, downloadFile, trashFile } from "./d
 import { runOCR } from "./ocr.js";
 import { createPaymentRequestDoc } from "./docs.js";
 import { syncUnverifiedFolder } from "./sync.js";
+import { createUser, listUsers, loginUser } from "./users.js";
 
 const HEBREW_MONTHS = [
   "ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני",
@@ -289,6 +290,29 @@ export default {
       if (path === "/api/sync-drive" && method === "POST") {
         const result = await syncUnverifiedFolder(env);
         return json(result);
+      }
+
+      // ---------- משתמשים ----------
+      if (path === "/api/users" && method === "GET") {
+        return json(await listUsers(env));
+      }
+      if (path === "/api/users" && method === "POST") {
+        try {
+          const body = await request.json();
+          const user = await createUser(env, body);
+          return json(user, 201);
+        } catch (e) {
+          return json({ error: e.message }, 400);
+        }
+      }
+      if (path === "/api/users/login" && method === "POST") {
+        try {
+          const body = await request.json();
+          const user = await loginUser(env, body);
+          return json(user);
+        } catch (e) {
+          return json({ error: e.message }, 401);
+        }
       }
 
       // ---------- ספקים ----------
