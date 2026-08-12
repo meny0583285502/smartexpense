@@ -275,13 +275,17 @@
     <h2>ניהול ספקים</h2>
     <form id="supplierForm">
       <input type="text" id="s_name" placeholder="שם ספק" required>
-      <input type="text" id="s_taxid" placeholder="ח.פ">
+      <input type="text" id="s_taxid" placeholder="ח.פ / מס' עוסק">
       <input type="text" id="s_phone" placeholder="טלפון">
-      <input type="text" id="s_account" placeholder="חשבון בנק">
+      <select id="s_bankcode"></select>
+      <div style="display:flex;gap:6px;">
+        <input type="text" id="s_branch" placeholder="סניף" style="flex:1;">
+        <input type="text" id="s_account" placeholder="מס' חשבון" style="flex:1;">
+      </div>
       <button class="action" type="submit">שמור ספק</button>
       <div class="msg" id="s_msg"></div>
     </form>
-    <table id="t_suppliers"><thead><tr><th>שם</th><th>ח.פ</th><th>טלפון</th><th>סה"כ הוצאות</th><th>סה"כ שולם</th></tr></thead><tbody></tbody></table>
+    <table id="t_suppliers"><thead><tr><th>שם</th><th>ח.פ</th><th>טלפון</th><th>בנק</th><th>סניף</th><th>חשבון</th><th>סה"כ הוצאות</th><th>סה"כ שולם</th></tr></thead><tbody></tbody></table>
   </div>
 
   <div id="previewModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;">
@@ -416,7 +420,7 @@
       sel.innerHTML = `<option value="">-- ללא --</option>` + cats.map(c => `<option value="${c}">${c}</option>`).join("");
     }
     function initFormMenus() {
-      ["a_bankcode", "c_bankcode", "ed_bankcode"].forEach(fillBankSelect);
+      ["a_bankcode", "c_bankcode", "ed_bankcode", "s_bankcode"].forEach(fillBankSelect);
       ["a_category", "c_category", "ed_category"].forEach(fillCategorySelect);
     }
     function combineBankDetails(prefix) {
@@ -659,10 +663,12 @@
         `).join("");
       }
       if (name === "suppliers") {
+        initFormMenus();
         const res = await fetch(`${API_BASE}/api/suppliers`);
         const rows = await res.json();
         document.querySelector("#t_suppliers tbody").innerHTML = rows.map(s => `
           <tr>${supplierCell(s.id,"name",s.name)}${supplierCell(s.id,"tax_id",s.tax_id)}${supplierCell(s.id,"phone",s.phone)}
+          ${supplierCell(s.id,"bank_code",s.bank_code)}${supplierCell(s.id,"branch_number",s.branch_number)}${supplierCell(s.id,"bank_account",s.bank_account)}
           <td>₪${(s.total_spent||0).toLocaleString()}</td><td>₪${(s.total_paid||0).toLocaleString()}</td></tr>
         `).join("");
       }
@@ -693,7 +699,11 @@
           user_id: currentUser.id,
         }),
       });
-      if (res.ok) { msg.className = "msg ok"; msg.textContent = "נשמר!"; e.target.reset(); loadDashboard(); }
+      if (res.ok) {
+        msg.className = "msg ok"; msg.textContent = "נשמר!"; e.target.reset(); loadDashboard();
+        const activeTab = document.querySelector(".tabs button.active");
+        if (activeTab) loadTab(activeTab.dataset.tab);
+      }
       else { msg.className = "msg err"; msg.textContent = "שגיאה: " + (await res.json()).error; }
     });
 
@@ -790,6 +800,8 @@
           tax_id: document.getElementById("s_taxid").value,
           phone: document.getElementById("s_phone").value,
           bank_account: document.getElementById("s_account").value,
+          bank_code: document.getElementById("s_bankcode").value,
+          branch_number: document.getElementById("s_branch").value,
         }),
       });
       if (res.ok) { msg.className = "msg ok"; msg.textContent = "נשמר!"; e.target.reset(); loadTab("suppliers"); }
