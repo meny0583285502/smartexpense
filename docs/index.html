@@ -33,8 +33,10 @@
   .panel.hidden { display:none; }
   form { display:flex; flex-direction:column; gap:8px; max-width:420px; }
   input, select { padding:8px 10px; font-size:14px; border:1px solid #ddd; border-radius:6px; }
-  button.action { padding:10px; font-size:14px; border:none; border-radius:8px; background:#4f46e5; color:#fff; cursor:pointer; margin-top:4px; }
-  button.action:hover { background:#4338ca; }
+  button.action { padding:10px; font-size:14px; border:none; border-radius:8px; background:#4f46e5; color:#fff; cursor:pointer; margin-top:4px; transition:all .15s; }
+  button.action:hover { background:#4338ca; transform:translateY(-1px); box-shadow:0 4px 12px rgba(79,70,229,.3); }
+  #sidebar { transition:transform .2s; }
+  #hamburgerBtn:hover { transform:scale(1.08); }
   button.secondary { background:#6b7280; }
   table { width:100%; border-collapse:collapse; font-size:13px; margin-top:10px; }
   th, td { text-align:right; padding:6px 8px; border-bottom:1px solid #eee; }
@@ -74,11 +76,46 @@
     </div>
   </div>
 
+  <button id="hamburgerBtn" onclick="toggleSidebar()" style="position:fixed;top:18px;left:18px;z-index:150;background:#4f46e5;color:#fff;border:none;border-radius:10px;width:44px;height:44px;font-size:20px;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.15);">☰</button>
+
+  <div id="sidebarOverlay" onclick="toggleSidebar()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:160;"></div>
+  <div id="sidebar" style="display:none;position:fixed;top:0;right:0;width:280px;height:100%;background:#fff;z-index:170;box-shadow:-4px 0 20px rgba(0,0,0,.15);padding:24px;box-sizing:border-box;">
+    <h2 style="color:#4f46e5;">🧾 קבלות חכמות</h2>
+    <p style="color:#666;font-size:13px;">מחובר בתור: <b id="sidebarUsername"></b></p>
+    <hr style="margin:16px 0;border:none;border-top:1px solid #eee;">
+    <button class="action" style="width:100%;text-align:right;" onclick="showTab('settings'); toggleSidebar();">⚙ הגדרות משתמש</button>
+    <button class="action secondary" style="width:100%;text-align:right;margin-top:8px;" onclick="switchUser()">🔄 החלף משתמש</button>
+    <button class="action secondary" style="width:100%;text-align:right;margin-top:8px;background:#c0392b;" onclick="logout()">🚪 התנתק</button>
+    <hr style="margin:16px 0;border:none;border-top:1px solid #eee;">
+    <button class="action secondary" style="width:100%;text-align:right;" onclick="manualSync(); toggleSidebar();">🔁 סנכרן דרייב עכשיו</button>
+  </div>
+
+  <div id="editModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;">
+    <div class="panel" style="max-width:420px;margin:60px auto;">
+      <h2>עריכת הוצאה</h2>
+      <form id="editForm">
+        <input type="date" id="ed_date" placeholder="תאריך">
+        <input type="number" step="0.01" id="ed_amount" placeholder="סכום">
+        <input type="text" id="ed_supplier" placeholder="שם ספק">
+        <input type="text" id="ed_taxid" placeholder="ח.פ">
+        <input type="text" id="ed_category" placeholder="סעיף תקציבי">
+        <input type="text" id="ed_bank" placeholder="חשבון בנק">
+        <input type="text" id="ed_notes" placeholder="הערות">
+        <select id="ed_status">
+          <option value="unverified">לא אומת</option>
+          <option value="no_receipt">ללא קבלה</option>
+          <option value="unpaid">לא יצא להחזר</option>
+          <option value="paid">יצא להחזר</option>
+        </select>
+        <button class="action" type="submit">שמור שינויים</button>
+        <button class="action secondary" type="button" onclick="closeEditModal()">ביטול</button>
+        <div class="msg" id="edit_msg"></div>
+      </form>
+    </div>
+  </div>
+
   <div id="app" style="display:none;">
-  <h1>🧾 קבלות חכמות <span class="institution-name" id="institutionName"></span>
-    <button class="action secondary" style="font-size:12px;padding:4px 10px;margin-right:12px;" onclick="switchUser()">החלף משתמש</button>
-    <button class="action secondary" style="font-size:12px;padding:4px 10px;background:#c0392b;" onclick="logout()">התנתק</button>
-  </h1>
+  <h1>🧾 קבלות חכמות <span class="institution-name" id="institutionName"></span></h1>
   <input type="month" id="month">
 
   <div class="cards">
@@ -190,7 +227,7 @@
 
   <div id="panel-expenses" class="panel hidden">
     <h2>כל ההוצאות של החודש</h2>
-    <table id="t_expenses"><thead><tr><th>תאריך</th><th>ספק</th><th>סכום</th><th>סטטוס</th><th>קובץ</th></tr></thead><tbody></tbody></table>
+    <table id="t_expenses"><thead><tr><th>תאריך</th><th>ספק</th><th>סכום</th><th>סטטוס</th><th>קובץ</th><th>פעולות</th></tr></thead><tbody></tbody></table>
   </div>
 
   <div id="panel-unpaid" class="panel hidden">
@@ -200,12 +237,12 @@
       <button class="action" id="exportDocBtn">ייצא לדוקס (בקשות ארחות יושר)</button>
     </div>
     <div class="msg" id="export_msg"></div>
-    <table id="t_unpaid"><thead><tr><th>תאריך</th><th>ספק</th><th>סכום</th><th>ח.פ</th><th>קובץ</th></tr></thead><tbody></tbody></table>
+    <table id="t_unpaid"><thead><tr><th>תאריך</th><th>ספק</th><th>סכום</th><th>ח.פ</th><th>קובץ</th><th>פעולות</th></tr></thead><tbody></tbody></table>
   </div>
 
   <div id="panel-paid" class="panel hidden">
     <h2>קבלות שיצאו להחזר החודש</h2>
-    <table id="t_paid"><thead><tr><th>תאריך</th><th>ספק</th><th>סכום</th><th>קובץ</th></tr></thead><tbody></tbody></table>
+    <table id="t_paid"><thead><tr><th>תאריך</th><th>ספק</th><th>סכום</th><th>קובץ</th><th>פעולות</th></tr></thead><tbody></tbody></table>
   </div>
 
   <div id="panel-unverified" class="panel hidden">
@@ -279,6 +316,7 @@
       loadDashboard();
       showTab("upload");
       showMode("c");
+      manualSync();
     }
     document.getElementById("newUserForm").addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -320,6 +358,7 @@
         loadDashboard();
         showTab("upload");
         showMode("c");
+        manualSync();
         return true;
       }
       return false;
@@ -328,6 +367,71 @@
     const monthInput = document.getElementById("month");
     monthInput.value = new Date().toISOString().slice(0,7);
     let selectedExistingId = null;
+
+    function toggleSidebar() {
+      const sb = document.getElementById("sidebar");
+      const ov = document.getElementById("sidebarOverlay");
+      const show = sb.style.display !== "block";
+      sb.style.display = show ? "block" : "none";
+      ov.style.display = show ? "block" : "none";
+      if (show) document.getElementById("sidebarUsername").textContent = currentUser.username;
+    }
+
+    async function manualSync() {
+      await fetch(`${API_BASE}/api/sync-drive`, { method: "POST" });
+      loadDashboard();
+    }
+
+    let receiptsCache = {};
+    function cacheRows(rows) { rows.forEach(r => receiptsCache[r.id] = r); }
+
+    function rowActions(id) {
+      return `
+        <button class="action secondary" style="padding:4px 8px;font-size:12px;" onclick="openEditModal(${id})">✏️</button>
+        <button class="action secondary" style="padding:4px 8px;font-size:12px;background:#c0392b;" onclick="deleteReceipt(${id})">🗑️</button>
+      `;
+    }
+
+    function openEditModal(id) {
+      const r = receiptsCache[id];
+      if (!r) return;
+      document.getElementById("editForm").dataset.id = id;
+      document.getElementById("ed_date").value = r.receipt_date || "";
+      document.getElementById("ed_amount").value = r.amount || "";
+      document.getElementById("ed_supplier").value = r.supplier_name || "";
+      document.getElementById("ed_taxid").value = r.tax_id || "";
+      document.getElementById("ed_category").value = r.category || "";
+      document.getElementById("ed_bank").value = r.bank_details || "";
+      document.getElementById("ed_notes").value = r.notes || "";
+      document.getElementById("ed_status").value = r.status;
+      document.getElementById("editModal").style.display = "block";
+    }
+    function closeEditModal() { document.getElementById("editModal").style.display = "none"; }
+
+    document.getElementById("editForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const id = e.target.dataset.id;
+      const msg = document.getElementById("edit_msg");
+      const res = await fetch(`${API_BASE}/api/receipts/${id}`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          date: document.getElementById("ed_date").value,
+          amount: document.getElementById("ed_amount").value,
+          supplier_name: document.getElementById("ed_supplier").value,
+          tax_id: document.getElementById("ed_taxid").value,
+          category: document.getElementById("ed_category").value,
+          bank_details: document.getElementById("ed_bank").value,
+          notes: document.getElementById("ed_notes").value,
+          status: document.getElementById("ed_status").value,
+        }),
+      });
+      if (res.ok) {
+        closeEditModal();
+        loadDashboard();
+        const activeTab = document.querySelector(".tabs button.active");
+        if (activeTab) loadTab(activeTab.dataset.tab);
+      } else { msg.className = "msg err"; msg.textContent = "שגיאה בשמירה"; }
+    });
 
     function previewFile(inputId, previewId) {
       const file = document.getElementById(inputId).files[0];
@@ -384,26 +488,29 @@
       if (name === "expenses") {
         const res = await fetch(`${API_BASE}/api/receipts?month=${month}&user_id=${uid}`);
         const rows = await res.json();
+        cacheRows(rows);
         document.querySelector("#t_expenses tbody").innerHTML = rows.map(r => `
           <tr><td>${r.receipt_date||""}</td><td>${r.supplier_name||""}</td><td>₪${(r.amount||0).toLocaleString()}</td>
-          <td>${r.status}</td><td>${receiptCell(r)}</td></tr>
+          <td>${r.status}</td><td>${receiptCell(r)}</td><td>${rowActions(r.id)}</td></tr>
         `).join("");
       }
       if (name === "unpaid") {
         const res1 = await fetch(`${API_BASE}/api/receipts?status=unpaid&user_id=${uid}`);
         const res2 = await fetch(`${API_BASE}/api/receipts?status=no_receipt&user_id=${uid}`);
         const rows = [...(await res1.json()), ...(await res2.json())];
+        cacheRows(rows);
         document.querySelector("#t_unpaid tbody").innerHTML = rows.map(r => `
           <tr><td>${r.receipt_date||""}</td><td>${r.supplier_name||""}</td><td>₪${(r.amount||0).toLocaleString()}</td>
-          <td>${r.tax_id||""}</td><td>${receiptCell(r)}</td></tr>
+          <td>${r.tax_id||""}</td><td>${receiptCell(r)}</td><td>${rowActions(r.id)}</td></tr>
         `).join("");
       }
       if (name === "paid") {
         const res = await fetch(`${API_BASE}/api/receipts?status=paid&month=${month}&user_id=${uid}`);
         const rows = await res.json();
+        cacheRows(rows);
         document.querySelector("#t_paid tbody").innerHTML = rows.map(r => `
           <tr><td>${r.receipt_date||""}</td><td>${r.supplier_name||""}</td><td>₪${(r.amount||0).toLocaleString()}</td>
-          <td>${r.drive_file_link ? `<a class="file-link" href="${r.drive_file_link}" target="_blank">צפה</a>` : ""}</td></tr>
+          <td>${r.drive_file_link ? `<a class="file-link" href="${r.drive_file_link}" target="_blank">צפה</a>` : ""}</td><td>${rowActions(r.id)}</td></tr>
         `).join("");
       }
       if (name === "unverified") {
@@ -613,7 +720,11 @@
     async function deleteReceipt(id) {
       if (!confirm("למחוק את הקבלה הזו לצמיתות (גם מהדרייב)?")) return;
       const res = await fetch(`${API_BASE}/api/receipts/${id}`, { method: "DELETE" });
-      if (res.ok) { loadTab("unverified"); loadDashboard(); }
+      if (res.ok) {
+        loadDashboard();
+        const activeTab = document.querySelector(".tabs button.active");
+        loadTab(activeTab ? activeTab.dataset.tab : "unverified");
+      }
       else alert("שגיאה במחיקה");
     }
 
