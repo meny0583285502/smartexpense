@@ -39,6 +39,33 @@
 </style>
 </head>
 <body>
+  <div id="loginScreen">
+    <h1>מערכת ניהול קבלות למוסד</h1>
+    <div class="panel" style="max-width:420px;">
+      <h2>בחר משתמש</h2>
+      <div id="userList"></div>
+      <button class="action secondary" style="margin-top:14px;" onclick="document.getElementById('newUserForm').style.display='block'">הוסף משתמש</button>
+      <form id="newUserForm" style="display:none;margin-top:14px;">
+        <input type="text" id="nu_username" placeholder="שם משתמש" required>
+        <input type="password" id="nu_password" placeholder="סיסמה" required>
+        <input type="password" id="nu_admin" placeholder="סיסמת מנהל לאישור" required>
+        <button class="action" type="submit">צור משתמש</button>
+        <div class="msg" id="nu_msg"></div>
+      </form>
+    </div>
+  </div>
+
+  <div id="loginPrompt" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;">
+    <div class="panel" style="max-width:340px;margin:100px auto;">
+      <h2>התחברות: <span id="lp_username"></span></h2>
+      <input type="password" id="lp_password" placeholder="סיסמה">
+      <button class="action" onclick="doLogin()">כניסה</button>
+      <button class="action secondary" onclick="document.getElementById('loginPrompt').style.display='none'">ביטול</button>
+      <div class="msg" id="lp_msg"></div>
+    </div>
+  </div>
+
+  <div id="app" style="display:none;">
   <h1>מערכת ניהול קבלות למוסד</h1>
   <input type="month" id="month">
 
@@ -106,7 +133,8 @@
       <div id="b_results"></div>
       <div id="b_attach" style="display:none;margin-top:14px;">
         <p>קובץ עבור הוצאה #<span id="b_selected_id"></span>:</p>
-        <input type="file" id="b_file" accept="image/*,application/pdf">
+        <input type="file" id="b_file" accept="image/*,application/pdf" capture="environment" onchange="previewFile('b_file','b_preview')">
+        <div id="b_preview" style="margin:6px 0;"></div>
         <button class="action" type="button" onclick="attachFile()">העלה וצרף</button>
         <div class="msg" id="b_msg"></div>
       </div>
@@ -116,7 +144,8 @@
     <div id="mode-c" class="mode-panel" style="display:none">
       <h2>הוצאה חדשה עם קבלה</h2>
       <form id="formC">
-        <input type="file" id="c_file" accept="image/*,application/pdf" required>
+        <input type="file" id="c_file" accept="image/*,application/pdf" capture="environment" required onchange="previewFile('c_file','c_preview')">
+        <div id="c_preview" style="margin:6px 0;"></div>
         <button class="action secondary" type="button" onclick="runSmartScan()">הרץ סריקה חכמה</button>
         <input type="date" id="c_date">
         <input type="number" id="c_amount" placeholder="סכום (₪) - חובה" step="0.01" required>
@@ -160,7 +189,7 @@
     <h2>קבלות שממתינות לאימות</h2>
     <button class="action secondary" id="syncDriveBtn">סנכרן קבצים שהוכנסו ידנית לדרייב</button>
     <div class="msg" id="sync_msg"></div>
-    <table id="t_unverified"><thead><tr><th>קובץ</th><th>תאריך</th><th>ספק</th><th>סכום</th><th>ח.פ</th><th></th></tr></thead><tbody></tbody></table>
+    <table id="t_unverified"><thead><tr><th>קובץ</th><th>תאריך</th><th>ספק</th><th>סכום</th><th>ח.פ</th><th></th><th></th></tr></thead><tbody></tbody></table>
   </div>
 
   <div id="panel-suppliers" class="panel hidden">
@@ -176,11 +205,91 @@
     <table id="t_suppliers"><thead><tr><th>שם</th><th>ח.פ</th><th>טלפון</th><th>סה"כ הוצאות</th><th>סה"כ שולם</th></tr></thead><tbody></tbody></table>
   </div>
 
+  <div id="previewModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;">
+    <div style="background:#fff;max-width:600px;margin:40px auto;border-radius:12px;padding:16px;position:relative;">
+      <button onclick="closePreview()" style="position:absolute;top:10px;left:10px;background:#c0392b;color:#fff;border:none;border-radius:6px;padding:6px 12px;cursor:pointer;">סגור</button>
+      <iframe id="previewFrame" src="" style="width:100%;height:70vh;border:none;margin-top:30px;"></iframe>
+    </div>
+  </div>
+
   <script>
+    function openPreview(fileId) {
+      document.getElementById("previewFrame").src = `https://drive.google.com/file/d/${fileId}/preview`;
+      document.getElementById("previewModal").style.display = "block";
+    }
+    function closePreview() {
+      document.getElementById("previewModal").style.display = "none";
+      document.getElementById("previewFrame").src = "";
+    }
     const API_BASE = "https://smartexpense.meny85502.workers.dev";
+    let currentUser = null;
+    let pendingUsername = null;
+
+    async function loadUserList() {
+      const res = await fetch(`${API_BASE}/api/users`);
+      const users = await res.json();
+      const div = document.getElementById("userList");
+      if (users.length === 0) { div.innerHTML = "<p>אין עדיין משתמשים - צור את הראשון</p>"; return; }
+      div.innerHTML = users.map(u => `<button class="action" style="display:block;width:100%;margin-bottom:6px;" onclick="promptLogin('${u.username}')">${u.username}</button>`).join("");
+    }
+    function promptLogin(username) {
+      pendingUsername = username;
+      document.getElementById("lp_username").textContent = username;
+      document.getElementById("lp_password").value = "";
+      document.getElementById("loginPrompt").style.display = "block";
+    }
+    async function doLogin() {
+      const password = document.getElementById("lp_password").value;
+      const msg = document.getElementById("lp_msg");
+      const res = await fetch(`${API_BASE}/api/users/login`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: pendingUsername, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) { msg.className = "msg err"; msg.textContent = data.error; return; }
+      currentUser = data;
+      document.getElementById("loginScreen").style.display = "none";
+      document.getElementById("loginPrompt").style.display = "none";
+      document.getElementById("app").style.display = "block";
+      loadDashboard();
+      showTab("upload");
+      showMode("c");
+    }
+    document.getElementById("newUserForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const msg = document.getElementById("nu_msg");
+      const res = await fetch(`${API_BASE}/api/users`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: document.getElementById("nu_username").value,
+          password: document.getElementById("nu_password").value,
+          admin_password: document.getElementById("nu_admin").value,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) { msg.className = "msg err"; msg.textContent = data.error; return; }
+      msg.className = "msg ok"; msg.textContent = "נוצר! אפשר להתחבר עכשיו.";
+      e.target.reset();
+      loadUserList();
+    });
+    loadUserList();
+
     const monthInput = document.getElementById("month");
     monthInput.value = new Date().toISOString().slice(0,7);
     let selectedExistingId = null;
+
+    function previewFile(inputId, previewId) {
+      const file = document.getElementById(inputId).files[0];
+      const div = document.getElementById(previewId);
+      if (!file) { div.innerHTML = ""; return; }
+      if (file.type.startsWith("image/")) {
+        div.innerHTML = `<img src="${URL.createObjectURL(file)}" style="max-width:100%;max-height:300px;border-radius:8px;border:1px solid #ddd;">`;
+      } else if (file.type === "application/pdf") {
+        div.innerHTML = `<embed src="${URL.createObjectURL(file)}" type="application/pdf" style="width:100%;height:300px;border-radius:8px;border:1px solid #ddd;">`;
+      } else {
+        div.innerHTML = `<p>קובץ נבחר: ${file.name}</p>`;
+      }
+    }
 
     function showTab(name) {
       document.querySelectorAll(".panel").forEach(p => p.classList.add("hidden"));
@@ -196,6 +305,16 @@
       document.getElementById("mode-" + mode).style.display = "block";
       document.querySelectorAll(".subtabs button").forEach(b => b.classList.remove("active"));
       document.querySelector(`.subtabs button[data-mode="${mode}"]`).classList.add("active");
+    }
+
+    function receiptCell(r) {
+      if (r.drive_file_id) return `<button class="action secondary" onclick="openPreview('${r.drive_file_id}')">📄 קבלה</button>`;
+      return `<span style="color:#c0392b;cursor:pointer;" onclick="goUploadFor(${r.id})">⚠ להעלות קבלה</span>`;
+    }
+    function goUploadFor(id) {
+      showTab("upload"); showMode("b");
+      document.getElementById("b_amount").value = "";
+      searchExisting();
     }
 
     async function loadDashboard() {
@@ -215,7 +334,7 @@
         const rows = await res.json();
         document.querySelector("#t_expenses tbody").innerHTML = rows.map(r => `
           <tr><td>${r.receipt_date||""}</td><td>${r.supplier_name||""}</td><td>₪${(r.amount||0).toLocaleString()}</td>
-          <td>${r.status}</td><td>${r.drive_file_link ? `<a class="file-link" href="${r.drive_file_link}" target="_blank">צפה</a>` : "אין קובץ"}</td></tr>
+          <td>${r.status}</td><td>${receiptCell(r)}</td></tr>
         `).join("");
       }
       if (name === "unpaid") {
@@ -224,7 +343,7 @@
         const rows = [...(await res1.json()), ...(await res2.json())];
         document.querySelector("#t_unpaid tbody").innerHTML = rows.map(r => `
           <tr><td>${r.receipt_date||""}</td><td>${r.supplier_name||""}</td><td>₪${(r.amount||0).toLocaleString()}</td>
-          <td>${r.tax_id||""}</td><td>${r.drive_file_link ? `<a class="file-link" href="${r.drive_file_link}" target="_blank">צפה</a>` : "אין קובץ עדיין"}</td></tr>
+          <td>${r.tax_id||""}</td><td>${receiptCell(r)}</td></tr>
         `).join("");
       }
       if (name === "paid") {
@@ -240,12 +359,13 @@
         const rows = await res.json();
         document.querySelector("#t_unverified tbody").innerHTML = rows.map(r => `
           <tr>
-            <td>${r.drive_file_link ? `<a class="file-link" href="${r.drive_file_link}" target="_blank">צפה</a>` : ""}</td>
+            <td>${r.drive_file_id ? `<button class="action secondary" onclick="openPreview('${r.drive_file_id}')">תצוגה מקדימה</button>` : "אין קובץ"}</td>
             <td><input type="date" value="${r.receipt_date||""}" id="uv_date_${r.id}"></td>
             <td><input type="text" value="${r.supplier_name||""}" id="uv_supplier_${r.id}"></td>
             <td><input type="number" step="0.01" value="${r.amount||""}" id="uv_amount_${r.id}"></td>
             <td><input type="text" value="${r.tax_id||""}" id="uv_taxid_${r.id}"></td>
             <td><button class="action" onclick="approveReceipt(${r.id})">אשר</button></td>
+            <td><button class="action secondary" style="background:#c0392b" onclick="deleteReceipt(${r.id})">מחק</button></td>
           </tr>
         `).join("");
       }
@@ -433,10 +553,28 @@
       } catch (err) { msg.className = "msg err"; msg.textContent = "שגיאה: " + err.message; }
     });
 
+    async function deleteReceipt(id) {
+      if (!confirm("למחוק את הקבלה הזו לצמיתות (גם מהדרייב)?")) return;
+      const res = await fetch(`${API_BASE}/api/receipts/${id}`, { method: "DELETE" });
+      if (res.ok) { loadTab("unverified"); loadDashboard(); }
+      else alert("שגיאה במחיקה");
+    }
+
+    // רענון אוטומטי כל דקה - כדי שספירת "לא אומתו" תתעדכן לבד אחרי שהסנכרון האוטומטי (כל 15 דק') מוצא קבלות חדשות
+    let lastUnverifiedCount = 0;
+    setInterval(async () => {
+      const res = await fetch(`${API_BASE}/api/dashboard?month=${monthInput.value}`);
+      const data = await res.json();
+      const card = document.getElementById("c_unverified");
+      if (data.unverified_count > lastUnverifiedCount && lastUnverifiedCount > 0) {
+        card.parentElement.style.outline = "3px solid #d68910";
+      }
+      lastUnverifiedCount = data.unverified_count;
+      card.textContent = data.unverified_count;
+    }, 60000);
+
     monthInput.addEventListener("change", () => loadDashboard());
-    loadDashboard();
-    showTab("upload");
-    showMode("a");
-  </script>
+  </script>  </div>
+
 </body>
 </html>
